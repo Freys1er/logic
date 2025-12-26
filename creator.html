@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Freyster // Dev Studio</title>
+    <link rel="stylesheet" href="css/main.css">
+    <!-- Google Icons for UI -->
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+    <style>
+        /* Minimal functional styles for the creator studio layout */
+        body { display: flex; height: 100vh; overflow: hidden; background: #111; color: #fff; margin: 0; }
+        .code-panel { width: 50%; display: flex; flex-direction: column; border-right: 1px solid #333; background: #1e1e1e; }
+        .toolbar { padding: 15px; background: #252526; display: flex; align-items: center; gap: 10px; }
+        input.dark-input { background: #333; border: 1px solid #444; color: #fff; padding: 8px 12px; border-radius: 4px; flex: 1; font-family: sans-serif; }
+        textarea#source-code { flex: 1; background: #1e1e1e; color: #d4d4d4; border: none; padding: 20px; font-family: 'Consolas', monospace; font-size: 14px; resize: none; }
+        .preview-panel { width: 50%; background: #000; display: flex; justify-content: center; align-items: center; }
+        .phone-mockup { width: 360px; height: 640px; border: 12px solid #333; border-radius: 30px; background: #fff; overflow: hidden; box-shadow: 0 0 50px rgba(0,0,0,0.5); }
+        iframe { width: 100%; height: 100%; border: none; }
+    </style>
+</head>
+<body>
+
+    <!-- Left side: Code Editor -->
+    <div class="code-panel">
+        <div class="toolbar">
+            <input type="text" id="tpl-name" class="dark-input" placeholder="Template Name (e.g. iMessage_P5_V1)">
+            <button id="publish-btn" class="primary-btn small" style="background: #34c759;">PUBLISH</button>
+        </div>
+        <textarea id="source-code" spellcheck="false">
+
+            // Freyster P5.js Self-Describing Template - iMessage V4
+
+// --- 1. THE CONFIGURATION (The Editor reads this) ---
+const templateConfig = {
+    // Defines the UI controls the simple editor should create.
+    variables: [
+        {
+            id: "scriptText",
+            label: "Script (Format: Speaker: Message)",
+            type: "textarea",
+            defaultValue: "Me: This is the new system.\nThem: It's... perfect."
+        },
+        {
+            id: "userBubbleColor",
+            label: "My Bubble Color",
+            type: "color",
+            defaultValue: "#007AFF"
+        },
+        {
+            id: "senderBubbleColor",
+            label: "Their Bubble Color",
+            type: "color",
+            defaultValue: "#E5E5EA"
+        },
+        {
+            id: "font",
+            label: "Font",
+            type: "text",
+            defaultValue: "Helvetica"
+        }
+    ]
+};
+
+// --- 2. THE ANIMATION ENGINE ---
+
+let state = {}; // The editor will populate this with variable values.
+let parsedScript = []; // A pre-calculated version of the script for efficiency.
+
+function setup() {
+    createCanvas(1080, 1920);
+    noLoop(); // The editor controls the timeline.
+    // Tell the editor we are ready for data.
+    window.parent.postMessage({ type: 'P5_READY' }, '*');
+}
+
+// The main draw() loop is now just for static previews in the dev studio.
+function draw() {
+    if (parsedScript.length > 0) {
+        renderFrame(0, state);
+    } else {
+        background(240);
+        textAlign(CENTER,CENTER);
+        text("Waiting for script data...", width/2, height/2);
+    }
+}
+
+// The core rendering function. The editor calls this for every frame.
+function renderFrame(frame, vars) {
+    background('#FFFFFF');
+    textFont(vars.font || 'Helvetica');
+    let yOffset = 150;
+
+    for (const msg of parsedScript) {
+        if (frame >= msg.startFrame) {
+            let alpha = constrain(map(frame, msg.startFrame, msg.startFrame + 15, 0, 255), 0, 255);
+            
+            // Draw Bubble
+            let bubbleColor = color(msg.speaker === 'Me' ? vars.userBubbleColor : vars.senderBubbleColor);
+            bubbleColor.setAlpha(alpha);
+            fill(bubbleColor);
+            noStroke();
+            rect(msg.bubbleX, yOffset, msg.bubbleW, msg.bubbleH, 40);
+
+            // Draw Text
+            let textColor = color(msg.speaker === 'Me' ? '#FFFFFF' : '#000000');
+            textColor.setAlpha(alpha);
+            fill(textColor);
+            textSize(48);
+            text(msg.text, msg.bubbleX + 40, yOffset + 65);
+
+            yOffset += msg.bubbleH + 30;
+        }
+    }
+}
+
+// This function runs whenever the scriptText variable is updated.
+function parseScript(rawScript) {
+    const lines = rawScript.split('\n').filter(line => line.includes(':'));
+    const messages = [];
+    let frameCounter = 30;
+    
+    for (const line of lines) {
+        const [speaker, ...textParts] = line.split(':');
+        const text = textParts.join(':').trim();
+        textSize(48);
+        let textW = textWidth(text);
+        let bubbleW = textW + 80;
+        let bubbleH = 120;
+        let bubbleX = speaker.trim() === 'Me' ? 1080 - bubbleW - 50 : 50;
+
+        messages.push({
+            speaker: speaker.trim(),
+            text: text,
+            startFrame: frameCounter,
+            bubbleW, bubbleH, bubbleX
+        });
+        frameCounter += 60 + (text.length * 6);
+    }
+    return messages;
+}
+
+// --- 3. THE COMMUNICATION PROTOCOL ---
+window.addEventListener('message', function(event) {
+    const data = event.data;
+    if (data.type === 'UPDATE_STATE') {
+        state = data.payload; // Update the entire state object.
+        if (state.scriptText) {
+            parsedScript = parseScript(state.scriptText);
+        }
+        // Redraw a static preview when data changes.
+        renderFrame(0, state); 
+    } else if (data.type === 'SEEK_FRAME') {
+        renderFrame(data.frame, state); // Render a specific frame.
+    }
+});
+</textarea>
+    </div>
+
+    <!-- Right side: Live Preview -->
+    <div class="preview-panel">
+        <div class="phone-mockup">
+            <iframe id="preview-frame"></iframe>
+        </div>
+    </div>
+
+    <!-- Logic -->
+    <script src="js/config.js"></script>
+    <script src="js/creator.js"></script>
+</body>
+</html>

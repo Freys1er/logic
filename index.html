@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Freyster Systems // Access</title>
+    <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+
+    <div class="auth-container">
+        <!-- HEADER -->
+        <h1 id="page-title">Freyster Systems</h1>
+        <p class="subtitle" id="page-subtitle">Log in to access the Logic Engine.</p>
+
+        <!-- FORM -->
+        <div id="auth-form">
+            <div class="input-group">
+                <label>IDENTITY</label>
+                <input type="email" id="email" placeholder="name@company.com" autocomplete="email">
+            </div>
+
+            <div class="input-group">
+                <label>CREDENTIAL</label>
+                <input type="password" id="password" placeholder="••••••••" autocomplete="current-password">
+            </div>
+
+            <button class="primary-btn" id="main-btn" onclick="handleAuth()">Sign In</button>
+        </div>
+
+        <!-- FEEDBACK -->
+        <div id="status" class="status-msg">Processing...</div>
+
+        <!-- TOGGLE -->
+        <div class="toggle-link" onclick="toggleMode()">
+            <span id="toggle-text">New here? Create an account</span>
+        </div>
+    </div>
+
+    <!-- LOGIC -->
+    <script src="js/config.js"></script>
+    <script src="js/auth.js"></script>
+</body>
+</html>
