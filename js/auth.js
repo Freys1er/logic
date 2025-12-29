@@ -1,3 +1,9 @@
+if (localStorage.getItem('freyster_key') && localStorage.getItem('freyster_user')) {
+    // Optional: Show a quick message so the user knows why they are being moved
+    // showStatus("Session found. Accessing Logic Engine...", "success"); 
+    window.location.href = "dashboard.html";
+}
+
 let isLoginMode = true;
 
 const dom = {
