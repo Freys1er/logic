@@ -567,7 +567,8 @@ code {
 
 .author-link {
     font-size: 12px;
-    color: var(--text-muted); /* Gray */
+    color: var(--text-muted);
+    /* Gray */
     text-decoration: none;
     margin-top: auto;
     font-weight: 500;
@@ -578,10 +579,19 @@ code {
 
 /* Only change color on hover if it is an anchor tag (clickable) */
 a.author-link:hover {
-    color: var(--accent); /* Black/Dark */
+    color: var(--accent);
+    /* Black/Dark */
     text-decoration: underline;
 }
 
 /* Animation for delete button loading */
-@keyframes spin { 100% { transform: rotate(360deg); } }
-.spin { animation: spin 1s linear infinite; display: inline-block; }
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+.spin {
+    animation: spin 1s linear infinite;
+    display: inline-block;
+}

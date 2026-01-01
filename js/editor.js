@@ -744,7 +744,7 @@ async function loadFromServer(id) {
         const data = await res.json();
 
         if (data.success) {
-            currentCloudId = id; 
+            currentCloudId = id;
             editorCM.setValue(data.p5_code);
             updatePreview();
             log("System", "Template loaded.");

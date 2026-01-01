@@ -6,16 +6,17 @@
     --bg-body: #fbfbfd;
     --bg-white: #ffffff;
     --bg-hover: #f5f5f7;
-    
+
     --text-main: #1d1d1f;
     --text-muted: #86868b;
-    
+
     --border: #d2d2d7;
     --border-light: #e1e1e6;
 
-    --accent: #0071e3;         /* Apple Blue */
+    --accent: #0071e3;
+    /* Apple Blue */
     --accent-dark: #005bb5;
-    
+
     --gold: #bfa117;
     --gold-bg: #fff8e1;
     --gold-border: rgba(191, 161, 23, 0.3);
@@ -42,7 +43,8 @@ body {
     background: var(--bg-body);
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text-main);
-    overflow: hidden; /* Prevent body scroll, use content scroll */
+    overflow: hidden;
+    /* Prevent body scroll, use content scroll */
 }
 
 /* =========================================
@@ -105,15 +107,20 @@ body {
 .menu-item.highlight-gold {
     color: #947c0d;
 }
+
 .menu-item.highlight-gold:hover {
     background: var(--gold-bg);
 }
 
 .menu-item.spacer {
-    flex: 1; /* Pushes subsequent items to bottom */
+    flex: 1;
+    /* Pushes subsequent items to bottom */
     cursor: default;
 }
-.menu-item.spacer:hover { background: none; }
+
+.menu-item.spacer:hover {
+    background: none;
+}
 
 .menu-item.disabled {
     opacity: 0.4;
@@ -191,7 +198,10 @@ body {
     align-items: center;
     transition: background 0.2s;
 }
-.logout-btn:hover { background: var(--danger-bg); }
+
+.logout-btn:hover {
+    background: var(--danger-bg);
+}
 
 /* =========================================
    3. MAIN AREA
@@ -238,7 +248,10 @@ h1#page-title {
     outline: none;
     transition: border 0.2s;
 }
-.search-box input:focus { border-color: var(--accent); }
+
+.search-box input:focus {
+    border-color: var(--accent);
+}
 
 .search-icon {
     position: absolute;
@@ -275,7 +288,10 @@ select {
     text-decoration: none;
     transition: background 0.2s;
 }
-.primary-btn:hover { background: #333; }
+
+.primary-btn:hover {
+    background: #333;
+}
 
 .secondary-btn {
     background: transparent;
@@ -287,7 +303,10 @@ select {
     font-size: 14px;
     transition: background 0.2s;
 }
-.secondary-btn:hover { background: var(--bg-hover); }
+
+.secondary-btn:hover {
+    background: var(--bg-hover);
+}
 
 /* =========================================
    4. GRID & CARDS
@@ -304,13 +323,14 @@ select {
     border: 1px solid var(--border-light);
     border-radius: var(--radius-lg);
     padding: 24px;
-    height: 180px; /* Fixed height for uniformity */
-    
+    height: 180px;
+    /* Fixed height for uniformity */
+
     /* CRITICAL: Layout Flex to push author to bottom */
     display: flex;
     flex-direction: column;
     position: relative;
-    
+
     cursor: pointer;
     transition: transform 0.2s, box-shadow 0.2s;
 }
@@ -345,7 +365,7 @@ select {
     font-weight: 600;
     line-height: 1.4;
     color: var(--text-main);
-    
+
     /* Truncate text after 2 lines */
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -355,7 +375,8 @@ select {
 
 /* Author Container (Sits at bottom) */
 .author-container {
-    margin-top: auto; /* Pushes to bottom */
+    margin-top: auto;
+    /* Pushes to bottom */
     display: flex;
     align-items: center;
 }
@@ -367,7 +388,8 @@ select {
     text-decoration: none;
     font-weight: 500;
     padding: 4px 0;
-    z-index: 10; /* Ensures it sits above card click area */
+    z-index: 10;
+    /* Ensures it sits above card click area */
     position: relative;
     transition: color 0.2s;
 }
@@ -387,10 +409,12 @@ a.author-link:hover {
     border-radius: 4px;
     display: flex;
     align-items: center;
-    z-index: 20; /* High priority click */
+    z-index: 20;
+    /* High priority click */
     position: relative;
     transition: color 0.2s, background 0.2s;
 }
+
 .icon-btn:hover {
     color: var(--danger);
     background: var(--danger-bg);
@@ -402,7 +426,8 @@ a.author-link:hover {
 #load-more-container {
     text-align: center;
     margin: 20px 0;
-    display: none; /* JS toggles this */
+    display: none;
+    /* JS toggles this */
 }
 
 /* Skeleton Loading Card */
@@ -414,9 +439,17 @@ a.author-link:hover {
 }
 
 @keyframes pulse {
-    0% { opacity: 0.6; }
-    50% { opacity: 1; }
-    100% { opacity: 0.6; }
+    0% {
+        opacity: 0.6;
+    }
+
+    50% {
+        opacity: 1;
+    }
+
+    100% {
+        opacity: 0.6;
+    }
 }
 
 /* Spin Animation for Delete Icon */
@@ -424,12 +457,27 @@ a.author-link:hover {
     animation: spin 1s linear infinite;
     display: inline-block;
 }
-@keyframes spin { 
-    100% { transform: rotate(360deg); } 
+
+@keyframes spin {
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 /* Scrollbar Styling (Optional, for webkit) */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d1d6; border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #aeaeb2; }
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #d1d1d6;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #aeaeb2;
+}

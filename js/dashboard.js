@@ -56,13 +56,13 @@ function switchView(viewName) {
     if (viewName === 'library') {
         document.getElementById('nav-library').classList.add('active');
         title.innerText = "Community Library";
-        if(controls) controls.style.visibility = 'visible';
+        if (controls) controls.style.visibility = 'visible';
         fetchLibrary();
-    } 
+    }
     else if (viewName === 'projects') {
         document.getElementById('nav-projects').classList.add('active');
         title.innerText = "My Projects";
-        if(controls) controls.style.visibility = 'hidden';
+        if (controls) controls.style.visibility = 'hidden';
         fetchProfileData(userEmail); // Fetch ME
     }
 }
@@ -83,8 +83,8 @@ function viewUserProfile(targetEmail) {
 
     const displayName = targetEmail.includes('@') ? targetEmail.split('@')[0] : targetEmail;
     title.innerHTML = `<span style="color:#888">Profile:</span> ${displayName}`;
-    
-    if(controls) controls.style.visibility = 'hidden';
+
+    if (controls) controls.style.visibility = 'hidden';
 
     fetchProfileData(targetEmail);
 }
@@ -97,7 +97,7 @@ function viewUserProfile(targetEmail) {
 async function fetchLibrary(sortMode = 'popular') {
     currentSort = sortMode;
     currentPage = 1;
-    
+
     document.getElementById('template-grid').innerHTML = '<div class="loader-card"></div><div class="loader-card"></div>';
     document.getElementById('load-more-container').style.display = 'none';
 
@@ -149,7 +149,7 @@ async function fetchProfileData(targetEmail) {
                         isLocal: true,
                         isPremium: false
                     });
-                } catch (e) {}
+                } catch (e) { }
             }
         });
     }
@@ -235,7 +235,7 @@ function renderGrid(items, context, isAppend = false) {
             link.href = `?user=${encodeURIComponent(rawEmail)}`;
             link.className = 'author-link';
             link.innerText = `By ${displayName}`;
-            
+
             // CRITICAL: Stop Propagation here
             link.onclick = (e) => {
                 e.preventDefault(); // Don't refresh
@@ -323,7 +323,7 @@ async function syncUserStatus() {
             localStorage.setItem('freyster_tier', data.tier);
             updateBadgeUI();
             const upBtn = document.getElementById('btn-upgrade-plan');
-            if(userTier === 'premium_monthly' && upBtn) upBtn.style.display = 'none';
+            if (userTier === 'premium_monthly' && upBtn) upBtn.style.display = 'none';
         } else { logout(); }
     } catch (e) { console.warn(e); }
 }

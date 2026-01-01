@@ -23,7 +23,7 @@ function toggleMode() {
     dom.subtitle.innerText = isLoginMode ? "Log in to access the Logic Engine." : "Create identity and configure billing.";
     dom.btn.innerText = isLoginMode ? "Sign In" : "Create & Upgrade ($29)";
     dom.toggle.innerText = isLoginMode ? "New here? Create an account" : "Already have access? Sign in";
-    
+
     // Clear status
     dom.status.className = 'status-msg';
 }
