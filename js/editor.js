@@ -1,8 +1,3 @@
-// ===================================================================================
-// --- CONFIGURATION & CONSTANTS ---
-// ===================================================================================
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbxlMM9xXHWPDfm_i16QkYKrA4c7dgIBx18PWvnQEcq-nhavPoMdUMVW60DQFzIjJfsbBw/exec';
-
 // --- INJECTED SYSTEM LOGIC (The "OS" & Engine) ---
 // Note: _availableAssets is now initialized empty but populated during injection
 const INJECTED_SYSTEM_CODE = `
@@ -734,18 +729,31 @@ function seek(frame) {
 // ===================================================================================
 async function loadFromServer(id) {
     showLoading("Downloading Template...");
+    
+    // 1. Get credentials from storage
+    const email = localStorage.getItem('freyster_user') || "";
+    const key = localStorage.getItem('freyster_key') || "";
+
     try {
-        const res = await fetch(`${GAS_URL}?action=load_template&id=${id}`);
+        // 2. Attach them to the URL
+        const url = `${CONFIG.API_URL}?action=load_template&id=${id}&email=${encodeURIComponent(email)}&userKey=${key}`;
+        
+        const res = await fetch(url);
         const data = await res.json();
+        
         if (data.success) {
             editorCM.setValue(data.p5_code);
             updatePreview();
             log("System", "Template loaded.");
         } else {
+            // This handles errors like "Subscription required" or "Login required"
             throw new Error(data.error);
         }
     } catch (e) {
         log("Error", e.message, "error");
+        
+        // Optional: If auth failed, maybe don't overwrite with default template immediately?
+        // But keeping your logic safe:
         editorCM.setValue(getDefaultTemplate());
         updatePreview();
     } finally {
@@ -754,10 +762,27 @@ async function loadFromServer(id) {
 }
 
 async function publishProject() {
+    // 1. Basic Auth Check
     if (!els.auth.email || !els.auth.key) {
         alert("Authentication missing. Please login.");
         return;
     }
+
+    // ===============================================
+    // 2. CLIENT-SIDE PREMIUM CHECK (Optimization)
+    // ===============================================
+    const currentTier = localStorage.getItem('freyster_tier');
+
+    // If NOT premium, stop right here. Don't even bother the server.
+    if (currentTier !== 'premium_monthly') {
+        if (confirm("🔒 Publishing is a Pro feature.\n\nClick OK to upgrade to Premium!")) {
+            const stripeUrl = "https://buy.stripe.com/aFa5kw6IB0pe1Im47d4ko00?prefilled_email=" + encodeURIComponent(els.auth.email);
+            window.open(stripeUrl, '_blank');
+        }
+        return; // <--- STOP EXECUTION
+    }
+
+    // 3. Name Prompt
     const name = prompt("Template Name:");
     if (!name) return;
 
@@ -775,13 +800,25 @@ async function publishProject() {
     };
 
     try {
-        await fetch(GAS_URL, {
+        // 4. Send Request (Standard Mode, NOT no-cors)
+        const response = await fetch(CONFIG.API_URL, {
             method: 'POST',
-            mode: 'no-cors',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        alert("Publish request sent!");
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert("✅ Published successfully!");
+        } else {
+            // Backup check in case they faked localStorage but server blocked them
+            if (data.error.includes("Premium")) {
+                alert("Server rejected: Premium subscription required.");
+            } else {
+                alert("Publish Failed: " + data.error);
+            }
+        }
     } catch (e) {
         log("Error", "Publishing failed: " + e.message, "error");
     } finally {

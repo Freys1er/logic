@@ -1,10 +1,15 @@
 // ==========================================
 // 1. CONFIG & AUTH CHECK
 // ==========================================
-const STRIPE_LINK = "https://buy.stripe.com/aFa5kw6IB0pe1Im47d4ko00";
+
+let currentPage = 1;
+let currentSort = 'popular';
+let currentSearch = ''; // New variable to track search text
+
+
 const userEmail = localStorage.getItem('freyster_user');
 const userKey = localStorage.getItem('freyster_key');
-const userTier = localStorage.getItem('freyster_tier') || 'free';
+let userTier = localStorage.getItem('freyster_tier') || 'free';
 
 // Redirect to Login if not auth
 if (!userEmail || !userKey) {
@@ -26,14 +31,47 @@ if (userTier === 'premium_monthly') {
     badgeEl.innerText = 'FREE';
 }
 
+
+
+// ==========================================
+// SEARCH HANDLER (Updated)
+// ==========================================
+let searchTimeout;
+
+function handleSearch(e) {
+    // 1. Update the global variable IMMEDIATELY
+    currentSearch = e.target.value;
+
+    // 2. Clear any pending auto-search
+    clearTimeout(searchTimeout);
+
+    // 3. If User hits ENTER -> Search Immediately
+    if (e.key === 'Enter') {
+        fetchLibrary(currentSort);
+        return; 
+    }
+    
+    // 4. Otherwise -> Wait 500ms (Debounce)
+    searchTimeout = setTimeout(() => {
+        fetchLibrary(currentSort); 
+    }, 500);
+}
+
+
 // Current View State
 let currentView = 'library';
 
 // ==========================================
 // 3. MAIN INIT
 // ==========================================
+// ==========================================
+// 3. MAIN INIT (UPDATED)
+// ==========================================
 async function initDashboard() {
-    // Check if URL has a ?view= parameter (optional enhancement)
+    // 1. ASK SERVER FIRST!
+    await syncUserStatus();
+
+    // 2. Now handle the view, knowing userTier is 100% accurate
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get('view');
 
@@ -76,7 +114,7 @@ function upgradeToPro() {
 
     // Construct URL with prefilled email
     // Stripe format: ?prefilled_email=user@example.com
-    const finalUrl = `${STRIPE_LINK}?prefilled_email=${encodeURIComponent(userEmail)}`;
+    const finalUrl = `${CONFIG.CONFIG.CONFIG.STRIPE_LINK}?prefilled_email=${encodeURIComponent(userEmail)}`;
 
     // Open in new tab
     window.open(finalUrl, '_blank');
@@ -87,24 +125,53 @@ function upgradeToPro() {
 // ==========================================
 
 // A. FETCH PUBLIC LIBRARY
-async function fetchLibrary() {
+
+async function fetchLibrary(sortMode = 'popular') {
+    currentSort = sortMode;
+    currentPage = 1; // Reset to page 1
+    
     const grid = document.getElementById('template-grid');
     grid.innerHTML = '<div class="loader-card"></div><div class="loader-card"></div>';
+    
+    // Hide button while loading
+    document.getElementById('load-more-container').style.display = 'none';
 
+    await loadData(false); // False = Don't Append, Overwrite
+}
+
+
+async function loadNextPage() {
+    currentPage++;
+    const btn = document.querySelector('#load-more-container button');
+    btn.innerText = "Loading...";
+    
+    await loadData(true); // True = Append to bottom
+    
+    btn.innerText = "Load More...";
+}
+
+async function loadData(isAppend) {
     try {
-        // Ensure CONFIG is defined in config.js
-        const response = await fetch(`${CONFIG.API_URL}?action=get_library`);
+        // Construct URL with Sort, Page, AND Search
+        const url = `${CONFIG.API_URL}?action=get_library&sort=${currentSort}&page=${currentPage}&search=${encodeURIComponent(currentSearch)}`;
+        
+        const response = await fetch(url);
         const data = await response.json();
-        console.log(data);
 
         if (data.success) {
-            renderGrid(data.library, 'library');
-        } else {
-            grid.innerHTML = "<p>Error loading library.</p>";
+            renderGrid(data.library, 'library', isAppend);
+            
+            // --- FIXING THE BUTTON VISIBILITY ---
+            const btnContainer = document.getElementById('load-more-container');
+            
+            if (data.has_more) {
+                btnContainer.style.display = 'block'; // Show if more pages exist
+            } else {
+                btnContainer.style.display = 'none';  // Hide if end of list
+            }
         }
     } catch (e) {
-        console.error(e);
-        grid.innerHTML = "<p class='error-msg'>Unable to connect to server.</p>";
+        console.error("Load Error", e);
     }
 }
 
@@ -198,19 +265,24 @@ function renderGrid(items) {
 
         // --- NEW CLICK LOGIC ---
         card.onclick = () => {
-            // 1. If it's a Library item, is Premium, and User is Free -> BLOCK & UPGRADE
-            if (currentView === 'library' && item.isPremium && userTier !== 'premium_monthly') {
-                // Optional: visual feedback
-                card.style.borderColor = "red";
-                setTimeout(() => card.style.borderColor = "transparent", 500);
+            // Use the global 'userTier' which was just synced with the server
+            const isPremiumTemplate = item.isPremium;
+            const isUserFree = userTier !== 'premium_monthly';
 
-                if (confirm("⭐️ This is a Pro template.\n\nClick OK to upgrade and unlock full access!")) {
-                    upgradeToPro(); // Opens the Stripe page
+            // 1. BLOCK if Premium Template + Free User
+            if (currentView === 'library' && isPremiumTemplate && isUserFree) {
+
+                // Visual shake/red border
+                card.style.border = "2px solid red";
+                setTimeout(() => card.style.border = "none", 500);
+
+                if (confirm("⭐️ This is a Pro template.\n\nOur server indicates you are currently on the Free plan.\nClick OK to upgrade!")) {
+                    upgradeToPro();
                 }
-                return; // Stop here, do not open editor
+                return;
             }
 
-            // 2. Otherwise (Free item OR User is Pro OR It's their own project) -> OPEN EDITOR
+            // 2. Allow Access
             window.location.href = `editor.html?id=${item.id}`;
         };
 
@@ -265,6 +337,49 @@ function logout() {
     localStorage.removeItem('freyster_key');
     localStorage.removeItem('freyster_tier');
     window.location.href = "index.html";
+}
+
+// ==========================================
+// NEW: SERVER SYNC FUNCTION
+// ==========================================
+async function syncUserStatus() {
+    console.log("🔄 Syncing status with server...");
+
+    // 1. If we don't have credentials, we can't check
+    if (!userEmail || !userKey) return;
+
+    try {
+        // 2. Ask the Pi: "What is my tier?"
+        const response = await fetch(`${CONFIG.API_URL}?action=verify_status&email=${encodeURIComponent(userEmail)}&userKey=${userKey}`);
+        const data = await response.json();
+
+        if (data.success) {
+            console.log("✅ Server says tier is:", data.tier);
+
+            // 3. Update Global Variable
+            // (We update the variable used by the rest of the script immediately)
+            userTier = data.tier;
+
+            // 4. Update Local Storage (so next refresh is faster)
+            localStorage.setItem('freyster_tier', data.tier);
+
+            // 5. Update UI Badge Immediately
+            const badgeEl = document.getElementById('user-badge');
+            if (userTier === 'premium_monthly') {
+                badgeEl.innerText = 'PRO';
+                badgeEl.classList.add('badge-pro');
+            } else {
+                badgeEl.innerText = 'FREE';
+                badgeEl.classList.remove('badge-pro');
+            }
+        } else {
+            // If key is invalid (e.g. user deleted on server), log them out
+            console.warn("Session invalid:", data.error);
+            logout();
+        }
+    } catch (e) {
+        console.error("Could not sync with server. Using cached tier.", e);
+    }
 }
 
 // Run
