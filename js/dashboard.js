@@ -1,17 +1,17 @@
 // ==========================================
 // 1. CONFIG & AUTH CHECK
 // ==========================================
-
 let currentPage = 1;
 let currentSort = 'popular';
-let currentSearch = ''; // New variable to track search text
-
+let currentSearch = '';
+let currentView = 'library'; // 'library', 'projects', 'profile'
+let searchTimeout;
 
 const userEmail = localStorage.getItem('freyster_user');
 const userKey = localStorage.getItem('freyster_key');
 let userTier = localStorage.getItem('freyster_tier') || 'free';
 
-// Redirect to Login if not auth
+// Redirect if not authenticated
 if (!userEmail || !userKey) {
     window.location.href = "index.html";
 }
@@ -21,61 +21,21 @@ if (!userEmail || !userKey) {
 // ==========================================
 document.getElementById('user-email').innerText = userEmail;
 document.getElementById('user-initial').innerText = userEmail.charAt(0).toUpperCase();
-
-// Handle Badge Display
-const badgeEl = document.getElementById('user-badge');
-if (userTier === 'premium_monthly') {
-    badgeEl.innerText = 'PRO';
-    badgeEl.classList.add('badge-pro'); // Add CSS class for gold color if needed
-} else {
-    badgeEl.innerText = 'FREE';
-}
-
-
-
-// ==========================================
-// SEARCH HANDLER (Updated)
-// ==========================================
-let searchTimeout;
-
-function handleSearch(e) {
-    // 1. Update the global variable IMMEDIATELY
-    currentSearch = e.target.value;
-
-    // 2. Clear any pending auto-search
-    clearTimeout(searchTimeout);
-
-    // 3. If User hits ENTER -> Search Immediately
-    if (e.key === 'Enter') {
-        fetchLibrary(currentSort);
-        return; 
-    }
-    
-    // 4. Otherwise -> Wait 500ms (Debounce)
-    searchTimeout = setTimeout(() => {
-        fetchLibrary(currentSort); 
-    }, 500);
-}
-
-
-// Current View State
-let currentView = 'library';
+updateBadgeUI();
 
 // ==========================================
 // 3. MAIN INIT
 // ==========================================
-// ==========================================
-// 3. MAIN INIT (UPDATED)
-// ==========================================
 async function initDashboard() {
-    // 1. ASK SERVER FIRST!
     await syncUserStatus();
 
-    // 2. Now handle the view, knowing userTier is 100% accurate
     const urlParams = new URLSearchParams(window.location.search);
     const viewParam = urlParams.get('view');
+    const userParam = urlParams.get('user'); // Check for ?user=email
 
-    if (viewParam === 'projects') {
+    if (userParam) {
+        viewUserProfile(userParam);
+    } else if (viewParam === 'projects') {
         switchView('projects');
     } else {
         switchView('library');
@@ -83,303 +43,310 @@ async function initDashboard() {
 }
 
 // ==========================================
-// 4. VIEW SWITCHER
+// 4. NAVIGATION HANDLERS
 // ==========================================
 function switchView(viewName) {
     currentView = viewName;
     const title = document.getElementById('page-title');
+    const controls = document.querySelector('.controls-container');
 
-    // Update Sidebar Active State
+    // Reset Sidebar
     document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
 
     if (viewName === 'library') {
         document.getElementById('nav-library').classList.add('active');
         title.innerText = "Community Library";
-        fetchLibrary(); // Load from Cloud
-    } else {
+        if(controls) controls.style.visibility = 'visible';
+        fetchLibrary();
+    } 
+    else if (viewName === 'projects') {
         document.getElementById('nav-projects').classList.add('active');
         title.innerText = "My Projects";
-        fetchMyProjects(); // Load Cloud Profile + Local Storage
+        if(controls) controls.style.visibility = 'hidden';
+        fetchProfileData(userEmail); // Fetch ME
     }
 }
 
-// ==========================================
-// 5. STRIPE PAYMENT HANDLER
-// ==========================================
-function upgradeToPro() {
-    if (userTier === 'premium_monthly') {
-        alert("You are already a Pro member!");
+function viewUserProfile(targetEmail) {
+    currentView = 'profile';
+    const title = document.getElementById('page-title');
+    const controls = document.querySelector('.controls-container');
+
+    // Reset Sidebar
+    document.querySelectorAll('.menu-item').forEach(el => el.classList.remove('active'));
+
+    // If I clicked my own link, go to "My Projects" view instead
+    if (targetEmail === userEmail) {
+        switchView('projects');
         return;
     }
 
-    // Construct URL with prefilled email
-    // Stripe format: ?prefilled_email=user@example.com
-    const finalUrl = `${CONFIG.CONFIG.CONFIG.STRIPE_LINK}?prefilled_email=${encodeURIComponent(userEmail)}`;
+    const displayName = targetEmail.includes('@') ? targetEmail.split('@')[0] : targetEmail;
+    title.innerHTML = `<span style="color:#888">Profile:</span> ${displayName}`;
+    
+    if(controls) controls.style.visibility = 'hidden';
 
-    // Open in new tab
-    window.open(finalUrl, '_blank');
+    fetchProfileData(targetEmail);
 }
 
 // ==========================================
-// 6. DATA FETCHING
+// 5. DATA FETCHING
 // ==========================================
 
-// A. FETCH PUBLIC LIBRARY
-
+// --- LIBRARY ---
 async function fetchLibrary(sortMode = 'popular') {
     currentSort = sortMode;
-    currentPage = 1; // Reset to page 1
+    currentPage = 1;
     
-    const grid = document.getElementById('template-grid');
-    grid.innerHTML = '<div class="loader-card"></div><div class="loader-card"></div>';
-    
-    // Hide button while loading
+    document.getElementById('template-grid').innerHTML = '<div class="loader-card"></div><div class="loader-card"></div>';
     document.getElementById('load-more-container').style.display = 'none';
 
-    await loadData(false); // False = Don't Append, Overwrite
-}
-
-
-async function loadNextPage() {
-    currentPage++;
-    const btn = document.querySelector('#load-more-container button');
-    btn.innerText = "Loading...";
-    
-    await loadData(true); // True = Append to bottom
-    
-    btn.innerText = "Load More...";
+    await loadData(false);
 }
 
 async function loadData(isAppend) {
     try {
-        // Construct URL with Sort, Page, AND Search
         const url = `${CONFIG.API_URL}?action=get_library&sort=${currentSort}&page=${currentPage}&search=${encodeURIComponent(currentSearch)}`;
-        
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
             renderGrid(data.library, 'library', isAppend);
-            
-            // --- FIXING THE BUTTON VISIBILITY ---
-            const btnContainer = document.getElementById('load-more-container');
-            
-            if (data.has_more) {
-                btnContainer.style.display = 'block'; // Show if more pages exist
-            } else {
-                btnContainer.style.display = 'none';  // Hide if end of list
-            }
+            document.getElementById('load-more-container').style.display = data.has_more ? 'block' : 'none';
         }
     } catch (e) {
-        console.error("Load Error", e);
+        console.error(e);
     }
 }
 
-// B. FETCH MY PROJECTS (Profile + Local)
-async function fetchMyProjects() {
+async function loadNextPage() {
+    currentPage++;
+    const btn = document.querySelector('#load-more-container button');
+    btn.innerText = "Loading...";
+    await loadData(true);
+    btn.innerText = "Load More";
+}
+
+// --- PROFILE (The missing function!) ---
+async function fetchProfileData(targetEmail) {
     const grid = document.getElementById('template-grid');
     grid.innerHTML = '<div class="loader-card"></div>';
+    document.getElementById('load-more-container').style.display = 'none';
 
     let allProjects = [];
 
-    // 1. Get Local Storage Projects (Autosaves)
-    Object.keys(localStorage).forEach(key => {
-        // Look for keys starting with 'local_' or the specific 'p5_studio_autosave'
-        if (key.startsWith('local_') || key === 'p5_studio_autosave') {
-            try {
-                const item = JSON.parse(localStorage.getItem(key));
-                allProjects.push({
-                    id: key,
-                    name: key === 'p5_studio_autosave' ? 'Unsaved Draft' : key.replace('local_', ''),
-                    desc: 'Local Device Storage',
-                    views: null, // Local has no views
-                    isLocal: true,
-                    lastUpdated: item.lastUpdated || Date.now()
-                });
-            } catch (e) { console.log('Skipping invalid local item', key); }
-        }
-    });
+    // 1. Get Local Storage (Only if viewing myself)
+    if (targetEmail === userEmail) {
+        Object.keys(localStorage).forEach(key => {
+            if (key.startsWith('local_') || key === 'p5_studio_autosave') {
+                try {
+                    const item = JSON.parse(localStorage.getItem(key));
+                    allProjects.push({
+                        id: key,
+                        name: key === 'p5_studio_autosave' ? 'Unsaved Draft' : key.replace('local_', ''),
+                        desc: 'Local Device Storage',
+                        views: 0,
+                        isLocal: true,
+                        isPremium: false
+                    });
+                } catch (e) {}
+            }
+        });
+    }
 
-    // 2. Get Cloud Projects from Backend
+    // 2. Get Cloud Projects
     try {
-        const url = `${CONFIG.API_URL}?action=get_profile&email=${encodeURIComponent(userEmail)}`;
+        const url = `${CONFIG.API_URL}?action=get_profile&email=${encodeURIComponent(targetEmail)}`;
         const response = await fetch(url);
         const data = await response.json();
 
         if (data.success) {
-            // Merge Cloud items
             const cloudItems = data.templates.map(t => ({
                 id: t.id,
                 name: t.name,
-                desc: 'Published to Cloud',
+                desc: targetEmail,
                 views: t.views,
                 isLocal: false,
                 isPremium: t.isPremium || false
             }));
-
             allProjects = [...allProjects, ...cloudItems];
         }
     } catch (e) {
-        console.error("Failed to fetch cloud profile", e);
-        // We don't block local files if cloud fails
+        console.error("Profile fetch error", e);
     }
 
-    renderGrid(allProjects, 'projects');
+    const context = (targetEmail === userEmail) ? 'my_projects' : 'library'; // Treat other profiles like library (no delete)
+    renderGrid(allProjects, context);
 }
 
 // ==========================================
-// 7. RENDERING
+// 6. RENDERING (FIXED CLICK LOGIC)
 // ==========================================
-
-function renderGrid(items) {
+function renderGrid(items, context, isAppend = false) {
     const grid = document.getElementById('template-grid');
-    grid.innerHTML = "";
+    if (!isAppend) grid.innerHTML = "";
 
-    if (items.length === 0) {
-        grid.innerHTML = "<p style='padding:20px; color:#666;'>No projects found.</p>";
+    if (items.length === 0 && !isAppend) {
+        grid.innerHTML = "<p style='color:#666; padding:20px; grid-column:1/-1; text-align:center;'>No projects found.</p>";
         return;
     }
 
     items.forEach(item => {
-        console.log(item);
         const card = document.createElement('div');
         card.className = 'card';
 
-        // Add a visual 'locked' icon if the user can't access it
-        const isLocked = (currentView === 'library' && item.isPremium && userTier !== 'premium_monthly');
-        const lockIcon = isLocked ? '<span class="material-symbols-outlined" style="font-size:16px; margin-left:5px;">lock</span>' : '';
+        // 1. BADGES
+        let badgesHtml = '';
+        if (item.isPremium) badgesHtml += `<span class="badge badge-pro">PRO</span> `;
+        if (item.isLocal) badgesHtml += `<span class="badge" style="background:#e3f2fd; color:#1976d2">LOCAL</span> `;
+
+        // 2. DELETE BUTTON
+        let deleteBtn = '';
+        if (context === 'my_projects' && !item.isLocal) {
+            // We'll attach the event manually below to be safe
+            deleteBtn = `<button class="icon-btn delete-trigger" title="Delete"><span class="material-symbols-outlined">delete</span></button>`;
+        }
+
+        // 3. HTML CONTENT (Without the Author Link logic yet)
+        const rawEmail = item.desc || "Unknown";
+        const displayName = rawEmail.includes('@') ? rawEmail.split('@')[0] : rawEmail;
 
         card.innerHTML = `
             <div class="card-top">
-                <span class="views">
-                    <span class="material-symbols-outlined">visibility</span> ${item.views}
-                </span>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    ${item.isPremium ? '<span class="badge pro">PRO</span>' : ''}
-                    ${lockIcon}
+                <div class="stat-item">
+                    <span class="material-symbols-outlined" style="font-size:16px;">visibility</span>
+                    ${item.views || 0}
+                </div>
+                <div style="display:flex; gap:5px; align-items:center;">
+                    ${badgesHtml}
+                    ${deleteBtn}
                 </div>
             </div>
             <h3>${item.name}</h3>
-            <p>${item.desc || 'No description'}</p>
+            <!-- Author Container -->
+            <div class="author-container"></div>
         `;
 
-        // --- NEW CLICK LOGIC ---
-        card.onclick = () => {
-            // Use the global 'userTier' which was just synced with the server
-            const isPremiumTemplate = item.isPremium;
-            const isUserFree = userTier !== 'premium_monthly';
+        // 4. ATTACH AUTHOR LINK (MANUALLY)
+        // This ensures the click event is handled purely in JS, preventing bubbling issues
+        const authorContainer = card.querySelector('.author-container');
+        if (context === 'library' && !item.isLocal) {
+            const link = document.createElement('a');
+            link.href = `?user=${encodeURIComponent(rawEmail)}`;
+            link.className = 'author-link';
+            link.innerText = `By ${displayName}`;
+            
+            // CRITICAL: Stop Propagation here
+            link.onclick = (e) => {
+                e.preventDefault(); // Don't refresh
+                e.stopPropagation(); // Don't click the card
+                viewUserProfile(rawEmail);
+            };
+            authorContainer.appendChild(link);
+        } else {
+            // Static text
+            authorContainer.innerHTML = `<span class="author-link" style="text-decoration:none; cursor:default">By ${displayName}</span>`;
+        }
 
-            // 1. BLOCK if Premium Template + Free User
-            if (currentView === 'library' && isPremiumTemplate && isUserFree) {
+        // 5. ATTACH DELETE CLICK (If exists)
+        const delBtn = card.querySelector('.delete-trigger');
+        if (delBtn) {
+            delBtn.onclick = (e) => deleteCloudProject(item.id, e);
+        }
 
-                // Visual shake/red border
-                card.style.border = "2px solid red";
-                setTimeout(() => card.style.border = "none", 500);
-
-                if (confirm("⭐️ This is a Pro template.\n\nOur server indicates you are currently on the Free plan.\nClick OK to upgrade!")) {
-                    upgradeToPro();
-                }
-                return;
-            }
-
-            // 2. Allow Access
-            window.location.href = `editor.html?id=${item.id}`;
-        };
+        // 6. ATTACH CARD CLICK (Open Editor)
+        card.onclick = () => handleCardClick(item);
 
         grid.appendChild(card);
     });
 }
 
 // ==========================================
-// 8. ACTIONS
+// 7. ACTIONS
 // ==========================================
+function handleCardClick(item) {
+    const isPremiumTemplate = item.isPremium;
+    const isUserFree = (userTier !== 'premium_monthly');
 
-async function deleteProject(e, id, isLocal) {
-    e.stopPropagation(); // Stop card click
-    if (!confirm("Are you sure you want to delete this project? This cannot be undone.")) return;
-
-    if (isLocal) {
-        // 1. Local Delete
-        localStorage.removeItem(id);
-        fetchMyProjects(); // Refresh view
-    } else {
-        // 2. Cloud Delete
-        try {
-            const btn = e.target.closest('button');
-            const originalIcon = btn.innerHTML;
-            btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span>'; // Loading state
-
-            const response = await fetch(CONFIG.API_URL, {
-                method: 'POST',
-                body: JSON.stringify({
-                    action: 'delete_template',
-                    id: id,
-                    email: userEmail,
-                    userKey: userKey
-                })
-            });
-
-            const res = await response.json();
-            if (res.success) {
-                fetchMyProjects(); // Refresh view
-            } else {
-                alert("Error: " + res.error);
-                btn.innerHTML = originalIcon;
-            }
-        } catch (err) {
-            alert("Connection error");
+    if (isPremiumTemplate && isUserFree) {
+        if (confirm("⭐️ This is a Pro template.\n\nClick OK to upgrade!")) {
+            upgradeToPro();
         }
+        return;
     }
+    window.location.href = `editor.html?id=${item.id}`;
+}
+
+async function deleteCloudProject(id, event) {
+    event.stopPropagation(); // Prevent opening editor
+    if (!confirm("⚠️ Are you sure you want to delete this project?")) return;
+
+    try {
+        const btn = event.currentTarget;
+        btn.innerHTML = '<span class="material-symbols-outlined spin">refresh</span>';
+
+        const response = await fetch(CONFIG.API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'delete_template',
+                id: id,
+                email: userEmail,
+                userKey: userKey
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            fetchProfileData(userEmail);
+        } else {
+            alert("Error: " + data.error);
+        }
+    } catch (e) { console.error(e); }
+}
+
+function handleSearch(e) {
+    currentSearch = e.target.value;
+    clearTimeout(searchTimeout);
+    if (e.key === 'Enter') { fetchLibrary(currentSort); return; }
+    searchTimeout = setTimeout(() => fetchLibrary(currentSort), 500);
+}
+
+// Sync Status
+async function syncUserStatus() {
+    if (!userEmail || !userKey) return;
+    try {
+        const res = await fetch(`${CONFIG.API_URL}?action=verify_status&email=${encodeURIComponent(userEmail)}&userKey=${userKey}`);
+        const data = await res.json();
+        if (data.success) {
+            userTier = data.tier;
+            localStorage.setItem('freyster_tier', data.tier);
+            updateBadgeUI();
+            const upBtn = document.getElementById('btn-upgrade-plan');
+            if(userTier === 'premium_monthly' && upBtn) upBtn.style.display = 'none';
+        } else { logout(); }
+    } catch (e) { console.warn(e); }
+}
+
+function updateBadgeUI() {
+    const badgeEl = document.getElementById('user-badge');
+    if (userTier === 'premium_monthly') {
+        badgeEl.innerText = 'PRO';
+        badgeEl.classList.add('badge-pro');
+    } else {
+        badgeEl.innerText = 'FREE';
+        badgeEl.classList.remove('badge-pro');
+    }
+}
+
+function upgradeToPro() {
+    const finalUrl = `${CONFIG.STRIPE_LINK}?prefilled_email=${encodeURIComponent(userEmail)}`;
+    window.open(finalUrl, '_blank');
 }
 
 function logout() {
-    localStorage.removeItem('freyster_user');
-    localStorage.removeItem('freyster_key');
-    localStorage.removeItem('freyster_tier');
+    localStorage.clear();
     window.location.href = "index.html";
-}
-
-// ==========================================
-// NEW: SERVER SYNC FUNCTION
-// ==========================================
-async function syncUserStatus() {
-    console.log("🔄 Syncing status with server...");
-
-    // 1. If we don't have credentials, we can't check
-    if (!userEmail || !userKey) return;
-
-    try {
-        // 2. Ask the Pi: "What is my tier?"
-        const response = await fetch(`${CONFIG.API_URL}?action=verify_status&email=${encodeURIComponent(userEmail)}&userKey=${userKey}`);
-        const data = await response.json();
-
-        if (data.success) {
-            console.log("✅ Server says tier is:", data.tier);
-
-            // 3. Update Global Variable
-            // (We update the variable used by the rest of the script immediately)
-            userTier = data.tier;
-
-            // 4. Update Local Storage (so next refresh is faster)
-            localStorage.setItem('freyster_tier', data.tier);
-
-            // 5. Update UI Badge Immediately
-            const badgeEl = document.getElementById('user-badge');
-            if (userTier === 'premium_monthly') {
-                badgeEl.innerText = 'PRO';
-                badgeEl.classList.add('badge-pro');
-            } else {
-                badgeEl.innerText = 'FREE';
-                badgeEl.classList.remove('badge-pro');
-            }
-        } else {
-            // If key is invalid (e.g. user deleted on server), log them out
-            console.warn("Session invalid:", data.error);
-            logout();
-        }
-    } catch (e) {
-        console.error("Could not sync with server. Using cached tier.", e);
-    }
 }
 
 // Run

@@ -20,7 +20,7 @@ body {
     padding: 0;
     background: var(--bg-dark);
     color: var(--text-main);
-    font-family: 'JetBrains Mono', 'Fira Code', monospace; 
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     display: flex;
     flex-direction: column;
     height: 100vh;
@@ -121,7 +121,8 @@ input:checked+.slider:before {
     background: var(--bg-panel);
     height: 100%;
     overflow: hidden;
-    flex-shrink: 0; /* Important for resizing */
+    flex-shrink: 0;
+    /* Important for resizing */
 }
 
 .left-panel {
@@ -129,13 +130,15 @@ input:checked+.slider:before {
 }
 
 .center-panel {
-    flex-grow: 1; /* This panel will take up remaining space */
+    flex-grow: 1;
+    /* This panel will take up remaining space */
     flex-shrink: 1;
     flex-basis: 50%;
     background: #000;
     align-items: center;
     justify-content: center;
-    min-width: 400px; /* Phone width + padding */
+    min-width: 400px;
+    /* Phone width + padding */
     border-right: none;
 }
 
@@ -221,6 +224,7 @@ input:checked+.slider:before {
     overflow: hidden;
     border-bottom: 1px solid var(--border);
 }
+
 .panel-section:last-child {
     border-bottom: none;
 }
@@ -252,7 +256,7 @@ textarea {
     color: #fff;
     padding: 8px;
     border-radius: 4px;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace; 
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
 }
 
 input[type="color"] {
@@ -360,10 +364,11 @@ iframe {
 }
 
 #frame-display {
-    font-family: 'JetBrains Mono', 'Fira Code', monospace; 
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 12px;
     color: var(--text-muted);
-    width: 70px; /* Wider to avoid jitter */
+    width: 70px;
+    /* Wider to avoid jitter */
     text-align: right;
 }
 
@@ -382,7 +387,7 @@ iframe {
 #console-output {
     flex-grow: 1;
     overflow-y: auto;
-    font-family: 'JetBrains Mono', 'Fira Code', monospace; 
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
     font-size: 11px;
     padding: 10px;
     color: #aaa;
@@ -390,9 +395,18 @@ iframe {
     word-break: break-all;
 }
 
-.log-error { color: #ff6b6b; }
-.log-warn { color: #feca57; }
-.log-sys { color: #54a0ff; font-style: italic; }
+.log-error {
+    color: #ff6b6b;
+}
+
+.log-warn {
+    color: #feca57;
+}
+
+.log-sys {
+    color: #54a0ff;
+    font-style: italic;
+}
 
 /* ASSETS */
 .asset-list {
@@ -400,6 +414,7 @@ iframe {
     padding: 10px;
     flex-grow: 1;
 }
+
 .asset-item {
     display: flex;
     align-items: center;
@@ -428,7 +443,8 @@ iframe {
     object-fit: cover;
     border-radius: 4px;
     flex-shrink: 0;
-    pointer-events: none; /* Prevents image from being dragged instead of the div */
+    pointer-events: none;
+    /* Prevents image from being dragged instead of the div */
 }
 
 .asset-name {
@@ -448,19 +464,22 @@ iframe {
     background: var(--bg-panel);
     border-radius: 4px;
     padding: 2px;
-    opacity: 0; /* Hidden by default */
+    opacity: 0;
+    /* Hidden by default */
     transition: opacity 0.2s ease;
     z-index: 5;
 }
 
 .asset-item:hover .asset-item-actions {
-    opacity: 1; /* Show on hover */
+    opacity: 1;
+    /* Show on hover */
 }
 
 .asset-item-actions .btn-icon {
     font-size: 16px;
     padding: 4px;
 }
+
 .asset-item-actions .btn-icon .material-symbols-outlined {
     font-size: 16px;
 }
@@ -504,8 +523,13 @@ iframe {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 code {
@@ -525,3 +549,39 @@ code {
     gap: 10px;
     margin-top: 20px;
 }
+
+.nav-brand {
+    cursor: pointer;
+    /* Keeps the existing flex/style properties you already have */
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.nav-brand:hover {
+    opacity: 0.8;
+    /* Optional: Slight fade effect on hover */
+}
+
+/* Add to css/dashboard.css */
+
+.author-link {
+    font-size: 12px;
+    color: var(--text-muted); /* Gray */
+    text-decoration: none;
+    margin-top: auto;
+    font-weight: 500;
+    transition: color 0.2s;
+    display: inline-block;
+    padding: 2px 0;
+}
+
+/* Only change color on hover if it is an anchor tag (clickable) */
+a.author-link:hover {
+    color: var(--accent); /* Black/Dark */
+    text-decoration: underline;
+}
+
+/* Animation for delete button loading */
+@keyframes spin { 100% { transform: rotate(360deg); } }
+.spin { animation: spin 1s linear infinite; display: inline-block; }

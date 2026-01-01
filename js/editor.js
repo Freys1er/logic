@@ -1,4 +1,6 @@
 // --- INJECTED SYSTEM LOGIC (The "OS" & Engine) ---
+let currentCloudId = null; // Tracks if we are editing an existing cloud file
+
 // Note: _availableAssets is now initialized empty but populated during injection
 const INJECTED_SYSTEM_CODE = `
 <script>
@@ -729,7 +731,7 @@ function seek(frame) {
 // ===================================================================================
 async function loadFromServer(id) {
     showLoading("Downloading Template...");
-    
+
     // 1. Get credentials from storage
     const email = localStorage.getItem('freyster_user') || "";
     const key = localStorage.getItem('freyster_key') || "";
@@ -737,11 +739,12 @@ async function loadFromServer(id) {
     try {
         // 2. Attach them to the URL
         const url = `${CONFIG.API_URL}?action=load_template&id=${id}&email=${encodeURIComponent(email)}&userKey=${key}`;
-        
+
         const res = await fetch(url);
         const data = await res.json();
-        
+
         if (data.success) {
+            currentCloudId = id; 
             editorCM.setValue(data.p5_code);
             updatePreview();
             log("System", "Template loaded.");
@@ -751,7 +754,7 @@ async function loadFromServer(id) {
         }
     } catch (e) {
         log("Error", e.message, "error");
-        
+
         // Optional: If auth failed, maybe don't overwrite with default template immediately?
         // But keeping your logic safe:
         editorCM.setValue(getDefaultTemplate());
@@ -792,6 +795,7 @@ async function publishProject() {
 
     const payload = {
         action: 'publish_template',
+        id: currentCloudId,
         name: name,
         creatorEmail: els.auth.email,
         userKey: els.auth.key,
