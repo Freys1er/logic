@@ -1,16 +1,14 @@
+/* ==========================================
+   GLOBAL VARIABLES & RESET
+   ========================================== */
 :root {
-    --bg-color: #f5f5f7;
-    /* Apple Grey */
-    --surface: rgba(255, 255, 255, 0.65);
-    /* Glass */
-    --surface-hover: rgba(255, 255, 255, 0.85);
-    --text-primary: #1d1d1f;
-    /* Deep Charcoal */
+    --bg-color: #f5f5f7;        /* Apple Grey */
+    --surface: rgba(255, 255, 255, 0.65); /* Glass */
+    --surface-solid: #ffffff;
+    --text-primary: #1d1d1f;    /* Deep Charcoal */
     --text-secondary: #86868b;
-    --accent: #0071e3;
-    /* System Blue */
-    --border: rgba(0, 0, 0, 0.05);
-    --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04);
+    --accent: #0071e3;          /* System Blue */
+    --border: rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.08);
     --radius: 18px;
     --blur: 20px;
@@ -19,56 +17,53 @@
 * {
     box-sizing: border-box;
     outline: none;
+    -webkit-tap-highlight-color: transparent; /* Remove mobile tap gray box */
 }
 
 body {
     margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Inter", "Segoe UI", sans-serif;
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
     background: var(--bg-color);
     color: var(--text-primary);
+    min-height: 100vh;
     display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    overflow: hidden;
-    /* Subtle Abstract Background Mesh */
-    background-image:
-        radial-gradient(circle at 10% 20%, rgba(0, 113, 227, 0.05) 0%, transparent 20%),
-        radial-gradient(circle at 90% 80%, rgba(255, 0, 0, 0.03) 0%, transparent 20%);
+    flex-direction: column;
 }
 
-/* --- THE GLASS CARD --- */
+/* ==========================================
+   AUTH PAGE (MOBILE DEFAULT)
+   ========================================== */
+/* On mobile, the container takes full width/height or sits at top */
 .auth-container {
-    width: 400px;
-    padding: 40px;
-    background: var(--surface);
-    backdrop-filter: blur(var(--blur));
-    -webkit-backdrop-filter: blur(var(--blur));
-    border: 1px solid var(--border);
-    border-radius: var(--radius);
-    box-shadow: var(--shadow-lg);
-    text-align: center;
-    transition: transform 0.3s ease;
+    width: 100%;
+    min-height: 100vh;
+    padding: 40px 24px;
+    background: var(--bg-color); /* Solid background on mobile */
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
 }
 
 /* TYPOGRAPHY */
 h1 {
-    font-size: 24px;
-    font-weight: 600;
+    font-size: 28px;
+    font-weight: 700;
     margin-bottom: 8px;
     letter-spacing: -0.5px;
+    text-align: center;
 }
 
 p.subtitle {
     color: var(--text-secondary);
-    font-size: 14px;
-    margin-bottom: 32px;
+    font-size: 15px;
+    margin-bottom: 40px;
+    text-align: center;
+    line-height: 1.4;
 }
 
-/* INPUT FIELDS */
+/* FORMS */
 .input-group {
-    margin-bottom: 16px;
-    text-align: left;
+    margin-bottom: 20px;
 }
 
 label {
@@ -77,55 +72,49 @@ label {
     color: var(--text-secondary);
     margin-left: 4px;
     display: block;
-    margin-bottom: 6px;
+    margin-bottom: 8px;
+    text-transform: uppercase;
 }
 
 input {
     width: 100%;
-    padding: 14px 16px;
-    background: rgba(255, 255, 255, 0.5);
-    border: 1px solid transparent;
+    padding: 16px; /* Larger touch target */
+    background: #ffffff;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    font-size: 16px;
-    transition: all 0.2s ease;
+    font-size: 16px; /* Prevents iOS zoom on focus */
     color: var(--text-primary);
 }
 
 input:focus {
-    background: #fff;
     border-color: var(--accent);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.1);
 }
 
 /* BUTTONS */
 button.primary-btn {
-    width: 30%;
-    padding: 8px;
+    width: 100%; /* Full width on mobile */
+    padding: 16px;
     background: var(--text-primary);
-    /* Black */
     color: #fff;
     border: none;
     border-radius: 12px;
     font-size: 16px;
-    font-weight: 500;
+    font-weight: 600;
     cursor: pointer;
-    transition: transform 0.1s ease, opacity 0.2s;
-}
-
-button.primary-btn:hover {
-    transform: scale(1.02);
-    opacity: 0.9;
+    margin-top: 10px;
 }
 
 button.primary-btn:active {
     transform: scale(0.98);
 }
 
-/* LINKS & TOGGLES */
+/* TOGGLE LINK */
 .toggle-link {
-    margin-top: 24px;
-    font-size: 13px;
+    margin-top: 30px;
+    font-size: 14px;
     color: var(--text-secondary);
+    text-align: center;
+    padding: 10px; /* Touch area */
     cursor: pointer;
 }
 
@@ -134,29 +123,45 @@ button.primary-btn:active {
     font-weight: 500;
 }
 
-/* ERROR/SUCCESS MESSAGES */
+/* STATUS MESSAGES */
 .status-msg {
     margin-top: 16px;
-    font-size: 13px;
+    font-size: 14px;
+    text-align: center;
     height: 20px;
-    /* Prevent layout jump */
     opacity: 0;
     transition: opacity 0.3s;
 }
+.status-msg.visible { opacity: 1; }
+.status-msg.error { color: #ff3b30; }
+.status-msg.success { color: #34c759; }
 
-.status-msg.visible {
-    opacity: 1;
-}
+/* ==========================================
+   DESKTOP OVERRIDES
+   ========================================== */
+@media (min-width: 768px) {
+    body {
+        align-items: center;
+        justify-content: center;
+        /* Abstract Background */
+        background-image:
+            radial-gradient(circle at 10% 20%, rgba(0, 113, 227, 0.05) 0%, transparent 20%),
+            radial-gradient(circle at 90% 80%, rgba(255, 0, 0, 0.03) 0%, transparent 20%);
+    }
 
-.status-msg.error {
-    color: #ff3b30;
-}
+    .auth-container {
+        width: 420px;
+        min-height: auto;
+        background: var(--surface); /* Glass effect */
+        backdrop-filter: blur(var(--blur));
+        -webkit-backdrop-filter: blur(var(--blur));
+        border: 1px solid rgba(255,255,255,0.4);
+        border-radius: var(--radius);
+        box-shadow: var(--shadow-lg);
+        padding: 40px;
+    }
 
-.status-msg.success {
-    color: #34c759;
-}
-
-/* UTILS */
-.hidden {
-    display: none;
+    button.primary-btn {
+        width: 100%; 
+    }
 }

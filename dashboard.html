@@ -3,28 +3,41 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Freyster // Command Center</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Freyster // Dashboard</title>
 
-    <!-- STYLES -->
-    <link rel="stylesheet" href="css/main.css"> <!-- Assumed Global Reset/Fonts -->
-    <link rel="stylesheet" href="css/dashboard.css">
+    <!-- 1. FONTS (CRITICAL FIX) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-    <!-- GOOGLE ICONS -->
+    <!-- 2. ICONS -->
     <link rel="stylesheet"
-        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" />
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+
+    <!-- 3. STYLES -->
+    <link rel="stylesheet" href="css/dashboard.css">
 </head>
 
 <body>
 
-    <!-- SIDEBAR -->
-    <nav class="sidebar">
+    <!-- MOBILE SIDEBAR OVERLAY -->
+    <div id="sidebar-overlay" onclick="toggleSidebar()"></div>
+
+    <!-- SIDEBAR (Navigation) -->
+    <nav id="sidebar">
+        <!-- Brand / Logo -->
         <div class="brand">
             <span class="material-symbols-outlined icon-logo">hub</span>
             <span>Freyster</span>
+            <!-- Close button for mobile only -->
+            <button class="mobile-close-btn" onclick="toggleSidebar()">
+                <span class="material-symbols-outlined">close</span>
+            </button>
         </div>
 
-        <div class="menu">
+        <!-- Scrollable Menu Items -->
+        <div class="menu-scroll-area">
             <div class="menu-item active" id="nav-library" onclick="switchView('library')">
                 <span class="material-symbols-outlined">grid_view</span>
                 <span>Library</span>
@@ -35,82 +48,91 @@
                 <span>My Projects</span>
             </div>
 
-            <!-- UPGRADE BUTTON (Hidden if Pro) -->
-            <div class="menu-item highlight-gold" id="btn-upgrade-plan" onclick="upgradeToPro()">
+            <div class="menu-item highlight-gold" onclick="upgradeToPro()">
                 <span class="material-symbols-outlined">diamond</span>
                 <span>Upgrade Plan</span>
             </div>
-
-            <div class="menu-item spacer"></div>
-
-            <div class="menu-item disabled">
-                <span class="material-symbols-outlined">settings</span>
-                <span>Settings</span>
-            </div>
         </div>
 
-        <!-- USER PROFILE FOOTER -->
+        <!-- Sticky Footer Profile (Fixed: Always at bottom) -->
         <div class="user-profile">
-            <div class="user-info">
-                <div class="avatar" id="user-initial">U</div>
-                <div class="user-details">
-                    <span id="user-email">loading...</span>
-                    <span class="badge" id="user-badge">FREE</span>
-                </div>
-                <button class="logout-btn" onclick="logout()" title="Sign Out">
-                    <span class="material-symbols-outlined">logout</span>
-                </button>
+            <div class="avatar" id="user-initial">U</div>
+            <div class="user-details">
+                <span id="user-email">loading...</span>
+                <span class="badge" id="user-badge">FREE</span>
             </div>
+            <button class="logout-btn" onclick="logout()">
+                <span class="material-symbols-outlined">logout</span>
+            </button>
         </div>
     </nav>
 
     <!-- MAIN CONTENT -->
-    <main class="content">
+    <main class="content-wrapper">
+
+        <!-- TOP HEADER -->
         <header class="top-bar">
-            <h1 id="page-title">Community Library</h1>
-
-            <div class="controls-container">
-                <!-- SEARCH BAR -->
-                <div class="search-box">
-                    <span class="material-symbols-outlined search-icon">search</span>
-                    <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch(event)">
-                </div>
-
-                <!-- SORT DROPDOWN -->
-                <div class="select-wrapper">
-                    <select id="sort-select" onchange="fetchLibrary(this.value)">
-                        <option value="popular">Popular</option>
-                        <option value="newest">Newest</option>
-                    </select>
-                </div>
-
-                <!-- NEW PROJECT BTN -->
-                <button class="primary-btn small icon-flex" onclick="window.location.href='editor.html'">
-                    <span class="material-symbols-outlined">add</span>
-                    <span>New Project</span>
+            <div class="header-left">
+                <button class="menu-toggle-btn" onclick="toggleSidebar()">
+                    <span class="material-symbols-outlined">menu</span>
                 </button>
+                <h1 id="page-title">Library</h1>
             </div>
+
+            <button class="primary-btn small" onclick="window.location.href='editor.html'">
+                <span class="material-symbols-outlined">add</span>
+                <span class="btn-text">New Project</span>
+            </button>
         </header>
 
-        <!-- THE GRID -->
+        <!-- CONTROLS (Search & Sort) -->
+        <div class="controls-section">
+            <div class="search-wrapper">
+                <span class="material-symbols-outlined search-icon">search</span>
+                <input type="text" id="search-input" placeholder="Search projects..." onkeyup="handleSearch(event)">
+            </div>
+
+            <div class="filter-wrapper">
+                <select id="sort-select" onchange="fetchLibrary(this.value)">
+                    <option value="popular">Popular</option>
+                    <option value="newest">Newest</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- GRID -->
         <div id="template-grid" class="grid-container">
-            <!-- Loader State (JavaScript will replace this) -->
-            <div class="loader-card"></div>
+            <!-- Items injected via JS -->
             <div class="loader-card"></div>
             <div class="loader-card"></div>
         </div>
 
-        <!-- LOAD MORE BTN -->
+        <!-- LOAD MORE -->
         <div id="load-more-container">
-            <button class="secondary-btn" onclick="loadNextPage()">
-                Load More
-            </button>
+            <button class="secondary-btn" onclick="loadNextPage()">Load More</button>
         </div>
+
     </main>
 
-    <!-- SCRIPTS -->
+    <!-- LOGIC -->
     <script src="js/config.js"></script>
     <script src="js/dashboard.js"></script>
+
+    <script>
+        // Inline Mobile Sidebar Logic
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('open');
+            document.getElementById('sidebar-overlay').classList.toggle('active');
+        }
+
+        // Close sidebar when clicking a menu item on mobile
+        const menuItems = document.querySelectorAll('.menu-item');
+        menuItems.forEach(item => {
+            item.addEventListener('click', () => {
+                if (window.innerWidth < 1024) toggleSidebar();
+            });
+        });
+    </script>
 </body>
 
 </html>

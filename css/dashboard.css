@@ -1,156 +1,150 @@
-/* =========================================
-   1. VARIABLES & RESET
-   ========================================= */
+/* ==================================================
+   1. RESET & VARIABLES
+   ================================================== */
 :root {
-    /* Colors */
-    --bg-body: #fbfbfd;
-    --bg-white: #ffffff;
-    --bg-hover: #f5f5f7;
-
+    --bg-body: #f5f5f7;
+    --bg-surface: #ffffff;
     --text-main: #1d1d1f;
     --text-muted: #86868b;
-
     --border: #d2d2d7;
-    --border-light: #e1e1e6;
-
     --accent: #0071e3;
-    /* Apple Blue */
-    --accent-dark: #005bb5;
-
     --gold: #bfa117;
-    --gold-bg: #fff8e1;
-    --gold-border: rgba(191, 161, 23, 0.3);
-
-    --danger: #ff3b30;
-    --danger-bg: #fff0f0;
-
-    /* Spacing & Radius */
-    --radius-sm: 8px;
-    --radius-md: 12px;
-    --radius-lg: 16px;
+    --gold-bg: #fffbe6;
+    --radius: 12px;
 }
 
 * {
     box-sizing: border-box;
+    /* CRITICAL FIX for sizing */
+    -webkit-tap-highlight-color: transparent;
 }
 
 body {
     margin: 0;
     padding: 0;
-    display: flex;
-    align-items: stretch;
-    height: 100vh;
+    font-family: 'Inter', sans-serif;
+    /* CRITICAL FIX for fonts */
     background: var(--bg-body);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
     color: var(--text-main);
+    height: 100vh;
+    display: flex;
+    /* Flex layout for sidebar + content */
     overflow: hidden;
-    /* Prevent body scroll, use content scroll */
+    /* Prevent body scroll, individual areas scroll */
 }
 
-/* =========================================
-   2. SIDEBAR
-   ========================================= */
-.sidebar {
-    width: 260px;
-    background: var(--bg-white);
-    border-right: 1px solid var(--border-light);
-    padding: 24px;
+/* ==================================================
+   2. SIDEBAR (Fixed Profile Issue)
+   ================================================== */
+#sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 280px;
+    height: 100vh;
+    /* Full viewport height */
+    background: var(--bg-surface);
+    z-index: 1000;
+    transform: translateX(-100%);
+    /* Hidden on Mobile */
+    transition: transform 0.3s ease;
+    border-right: 1px solid var(--border);
+
+    /* FLEX COLUMN IS KEY FOR STICKY FOOTER */
     display: flex;
     flex-direction: column;
-    flex-shrink: 0;
-    z-index: 100;
 }
 
+#sidebar.open {
+    transform: translateX(0);
+}
+
+/* Brand Header */
 .brand {
+    padding: 24px;
+    font-size: 20px;
     font-weight: 700;
-    font-size: 18px;
     display: flex;
     align-items: center;
-    gap: 10px;
-    margin-bottom: 32px;
-    color: var(--text-main);
-    padding-left: 8px;
+    justify-content: space-between;
+    border-bottom: 1px solid #f0f0f0;
 }
 
-.menu {
+.icon-logo {
+    margin-right: 10px;
+    color: var(--accent);
+}
+
+.mobile-close-btn {
+    background: none;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #666;
+}
+
+/* Menu Scroll Area (Takes remaining space) */
+.menu-scroll-area {
+    flex-grow: 1;
+    /* Pushes profile to bottom */
+    overflow-y: auto;
+    padding: 16px;
     display: flex;
     flex-direction: column;
-    gap: 4px;
-    flex: 1;
+    gap: 5px;
 }
 
 .menu-item {
+    padding: 12px 16px;
+    border-radius: 8px;
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 10px 12px;
-    border-radius: var(--radius-sm);
     color: var(--text-muted);
-    cursor: pointer;
-    font-size: 14px;
     font-weight: 500;
-    transition: all 0.2s ease;
-    user-select: none;
+    cursor: pointer;
+    transition: 0.2s;
 }
 
 .menu-item:hover {
-    background: var(--bg-hover);
+    background: #f5f5f7;
     color: var(--text-main);
 }
 
 .menu-item.active {
-    background: #f2f2f7;
-    color: var(--text-main);
-    font-weight: 600;
+    background: #eef7ff;
+    color: var(--accent);
 }
 
 .menu-item.highlight-gold {
-    color: #947c0d;
+    color: #b8860b;
 }
 
 .menu-item.highlight-gold:hover {
     background: var(--gold-bg);
 }
 
-.menu-item.spacer {
-    flex: 1;
-    /* Pushes subsequent items to bottom */
-    cursor: default;
-}
-
-.menu-item.spacer:hover {
-    background: none;
-}
-
-.menu-item.disabled {
-    opacity: 0.4;
-    cursor: not-allowed;
-}
-
-/* User Profile Section (Bottom of Sidebar) */
+/* User Profile (Pinned to Bottom) */
 .user-profile {
-    border-top: 1px solid var(--border-light);
-    padding-top: 16px;
-    margin-top: 16px;
-}
-
-.user-info {
+    flex-shrink: 0;
+    /* Prevents shrinking */
+    padding: 20px;
+    border-top: 1px solid var(--border);
+    background: var(--bg-surface);
     display: flex;
     align-items: center;
     gap: 12px;
 }
 
 .avatar {
-    width: 36px;
-    height: 36px;
-    background: #111;
-    color: white;
+    width: 40px;
+    height: 40px;
+    background: #333;
+    color: #fff;
     border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    display: grid;
+    place-items: center;
     font-weight: 700;
-    font-size: 14px;
 }
 
 .user-details {
@@ -161,7 +155,7 @@ body {
 }
 
 #user-email {
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
     white-space: nowrap;
     overflow: hidden;
@@ -171,313 +165,264 @@ body {
 .badge {
     font-size: 10px;
     background: #eee;
-    color: #555;
     padding: 2px 6px;
     border-radius: 4px;
-    text-transform: uppercase;
-    font-weight: 700;
-    align-self: flex-start;
+    align-self: start;
     margin-top: 2px;
-    letter-spacing: 0.5px;
-}
-
-.badge.badge-pro {
-    background: var(--gold-bg);
-    color: #bfa117;
-    border: 1px solid var(--gold-border);
 }
 
 .logout-btn {
     background: none;
     border: none;
-    color: var(--danger);
+    color: #ff3b30;
     cursor: pointer;
-    padding: 6px;
-    border-radius: 6px;
-    display: flex;
-    align-items: center;
-    transition: background 0.2s;
+    padding: 5px;
 }
 
-.logout-btn:hover {
-    background: var(--danger-bg);
+/* Overlay */
+#sidebar-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 900;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
 }
 
-/* =========================================
-   3. MAIN AREA
-   ========================================= */
-.content {
+#sidebar-overlay.active {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+/* ==================================================
+   3. MAIN CONTENT
+   ================================================== */
+.content-wrapper {
     flex: 1;
-    padding: 32px 48px;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
     overflow-y: auto;
-    position: relative;
+    /* Content scrolls independently */
+    background: var(--bg-body);
 }
 
+/* Header */
 .top-bar {
+    padding: 16px 20px;
+    background: var(--bg-surface);
+    border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
 }
 
-h1#page-title {
-    margin: 0;
+.header-left {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.menu-toggle-btn {
+    background: none;
+    border: none;
     font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+}
+
+#page-title {
+    margin: 0;
+    font-size: 18px;
     font-weight: 700;
 }
 
-/* Controls (Search, Sort, Buttons) */
-.controls-container {
+.primary-btn {
+    background: #111;
+    color: #fff;
+    border: none;
+    padding: 0 16px;
+    height: 36px;
+    border-radius: 8px;
+    font-weight: 500;
+    font-size: 13px;
+    cursor: pointer;
     display: flex;
-    gap: 12px;
     align-items: center;
+    gap: 6px;
+    white-space: nowrap;
 }
 
-.search-box {
+.primary-btn .btn-text {
+    display: none;
+}
+
+/* Icon only on mobile */
+
+/* ==================================================
+   4. INPUTS & CONTROLS (Fixed Sizing)
+   ================================================== */
+.controls-section {
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    /* Stack on mobile */
+    gap: 12px;
+}
+
+.search-wrapper {
     position: relative;
-    width: 240px;
-}
-
-.search-box input {
     width: 100%;
-    padding: 8px 10px 8px 36px;
-    border: 1px solid var(--border);
-    background: var(--bg-white);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    outline: none;
-    transition: border 0.2s;
 }
 
-.search-box input:focus {
-    border-color: var(--accent);
+/* FIXED INPUT SIZING */
+input[type="text"],
+select {
+    width: 100%;
+    /* Full width container */
+    height: 46px;
+    /* Touch friendly height */
+    padding: 0 12px;
+    border: 1px solid #ccc;
+    border-radius: 10px;
+    font-size: 16px;
+    /* Stop iOS zoom */
+    font-family: 'Inter', sans-serif;
+    background: #fff;
+    appearance: none;
+    /* Remove native UI */
+}
+
+input[type="text"] {
+    padding-left: 42px;
+    /* Space for icon */
 }
 
 .search-icon {
     position: absolute;
-    left: 10px;
+    left: 12px;
     top: 50%;
     transform: translateY(-50%);
-    font-size: 18px;
-    color: var(--text-muted);
+    color: #999;
     pointer-events: none;
 }
 
-select {
-    padding: 8px 12px;
-    border: 1px solid var(--border);
-    background: var(--bg-white);
-    border-radius: var(--radius-sm);
-    font-size: 14px;
-    cursor: pointer;
-    outline: none;
-}
-
-.primary-btn {
-    background: #000;
-    color: white;
-    border: none;
-    border-radius: var(--radius-sm);
-    padding: 8px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    text-decoration: none;
-    transition: background 0.2s;
-}
-
-.primary-btn:hover {
-    background: #333;
-}
-
-.secondary-btn {
-    background: transparent;
-    border: 1px solid var(--border);
-    color: var(--text-main);
-    padding: 8px 24px;
-    border-radius: var(--radius-sm);
-    cursor: pointer;
-    font-size: 14px;
-    transition: background 0.2s;
-}
-
-.secondary-btn:hover {
-    background: var(--bg-hover);
-}
-
-/* =========================================
-   4. GRID & CARDS
-   ========================================= */
+/* ==================================================
+   5. GRID
+   ================================================== */
 .grid-container {
+    padding: 0 20px 40px 20px;
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 24px;
-    padding-bottom: 60px;
+    grid-template-columns: 1fr;
+    /* 1 col mobile */
+    gap: 16px;
 }
 
 .card {
-    background: var(--bg-white);
-    border: 1px solid var(--border-light);
-    border-radius: var(--radius-lg);
-    padding: 24px;
-    height: 180px;
-    /* Fixed height for uniformity */
-
-    /* CRITICAL: Layout Flex to push author to bottom */
+    background: #fff;
+    border: 1px solid #e1e1e1;
+    border-radius: 16px;
+    padding: 20px;
     display: flex;
     flex-direction: column;
-    position: relative;
-
-    cursor: pointer;
-    transition: transform 0.2s, box-shadow 0.2s;
+    min-height: 160px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
 }
 
-.card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
-    border-color: #c7c7cc;
+.card h3 {
+    margin: 10px 0;
+    font-size: 17px;
 }
 
-/* Card Header (Views, Badges, Delete) */
 .card-top {
     display: flex;
     justify-content: space-between;
-    align-items: center;
-    margin-bottom: 12px;
-}
-
-.stat-item {
+    color: #888;
     font-size: 12px;
-    color: var(--text-muted);
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    font-weight: 500;
 }
 
-/* Card Title */
-.card h3 {
-    margin: 0 0 8px 0;
-    font-size: 16px;
-    font-weight: 600;
-    line-height: 1.4;
-    color: var(--text-main);
-
-    /* Truncate text after 2 lines */
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-/* Author Container (Sits at bottom) */
 .author-container {
     margin-top: auto;
-    /* Pushes to bottom */
-    display: flex;
-    align-items: center;
+    font-size: 13px;
+    color: #666;
 }
 
-/* The Link inside the container */
-.author-link {
-    font-size: 12px;
-    color: var(--text-muted);
-    text-decoration: none;
-    font-weight: 500;
-    padding: 4px 0;
-    z-index: 10;
-    /* Ensures it sits above card click area */
-    position: relative;
-    transition: color 0.2s;
-}
-
-a.author-link:hover {
-    color: var(--accent-dark);
-    text-decoration: underline;
-}
-
-/* Buttons inside Card */
-.icon-btn {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: var(--text-muted);
-    padding: 4px;
-    border-radius: 4px;
-    display: flex;
-    align-items: center;
-    z-index: 20;
-    /* High priority click */
-    position: relative;
-    transition: color 0.2s, background 0.2s;
-}
-
-.icon-btn:hover {
-    color: var(--danger);
-    background: var(--danger-bg);
-}
-
-/* =========================================
-   5. LOADING & ANIMATIONS
-   ========================================= */
 #load-more-container {
     text-align: center;
-    margin: 20px 0;
-    display: none;
-    /* JS toggles this */
+    padding: 20px;
 }
 
-/* Skeleton Loading Card */
-.loader-card {
-    height: 180px;
-    background: #f0f0f2;
-    border-radius: var(--radius-lg);
-    animation: pulse 1.5s infinite;
+.secondary-btn {
+    background: #fff;
+    border: 1px solid #ccc;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
 }
 
-@keyframes pulse {
-    0% {
-        opacity: 0.6;
+/* ==================================================
+   6. DESKTOP MEDIA QUERY ( > 1024px)
+   ================================================== */
+@media (min-width: 1024px) {
+
+    /* Sidebar permanent */
+    #sidebar {
+        position: relative;
+        transform: none;
+        /* Always visible */
+        width: 260px;
+        border-right: 1px solid var(--border);
     }
 
-    50% {
-        opacity: 1;
+    .mobile-close-btn {
+        display: none;
     }
 
-    100% {
-        opacity: 0.6;
+    .menu-toggle-btn {
+        display: none;
     }
-}
 
-/* Spin Animation for Delete Icon */
-.spin {
-    animation: spin 1s linear infinite;
-    display: inline-block;
-}
-
-@keyframes spin {
-    100% {
-        transform: rotate(360deg);
+    #sidebar-overlay {
+        display: none !important;
     }
-}
 
-/* Scrollbar Styling (Optional, for webkit) */
-::-webkit-scrollbar {
-    width: 8px;
-}
+    /* Top Bar */
+    .top-bar {
+        padding: 24px 40px;
+    }
 
-::-webkit-scrollbar-track {
-    background: transparent;
-}
+    #page-title {
+        font-size: 24px;
+    }
 
-::-webkit-scrollbar-thumb {
-    background: #d1d1d6;
-    border-radius: 4px;
-}
+    .primary-btn .btn-text {
+        display: inline;
+    }
 
-::-webkit-scrollbar-thumb:hover {
-    background: #aeaeb2;
+    /* Show text */
+
+    /* Controls Row */
+    .controls-section {
+        flex-direction: row;
+        padding: 0 40px 20px 40px;
+    }
+
+    .search-wrapper {
+        max-width: 300px;
+    }
+
+    .filter-wrapper {
+        width: 150px;
+    }
+
+    /* Grid */
+    .grid-container {
+        grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+        padding: 0 40px 60px 40px;
+    }
 }
