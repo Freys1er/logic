@@ -5,157 +5,123 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Freyster Studio</title>
-
-    <!-- FONTS -->
+    <!-- FONTS & ICONS -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap"
         rel="stylesheet">
-
-    <!-- ICONS -->
     <link rel="stylesheet"
         href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
-
     <!-- LIBRARIES -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/mode/javascript/javascript.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/codemirror.min.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/codemirror/5.65.16/theme/dracula.min.css">
-
-    <!-- VIDEO EXPORT LIBRARY (Added) -->
     <script src="https://unpkg.com/ccapture.js@1.1.0/build/CCapture.all.min.js"></script>
-
-    <!-- STYLES -->
+    <!-- STYLES (Assuming you have a css/editor.css file) -->
     <link rel="stylesheet" href="css/editor.css">
 </head>
 
 <body>
-
-    <!-- NAV BAR -->
+    <!-- The entire body structure is the same as the previous version -->
     <nav class="navbar">
-        <div class="nav-brand" onclick="window.location.href='dashboard.html'">
-            <span class="material-symbols-outlined">arrow_back</span>
-            <span>Studio</span>
-        </div>
+        <div class="nav-brand"><span class="material-symbols-outlined">arrow_back</span><span>Studio</span></div>
         <div class="nav-controls">
-            <!-- Desktop Dev Toggle -->
-            <div class="mode-toggle">
-                <span>Dev Mode</span>
-                <input type="checkbox" id="dev-mode-toggle">
-            </div>
-
-            <!-- EXPORT BUTTON -->
-            <button id="export-btn" class="btn btn-sm btn-secondary" title="Export Video">
-                <span class="material-symbols-outlined" style="font-size:16px">movie</span>
-                <span class="desktop-only">Export</span>
-            </button>
-
-            <button id="publish-btn" class="btn btn-primary btn-sm">
-                <span class="material-symbols-outlined" style="font-size:16px">upload</span>
-                <span class="desktop-only">Publish</span>
-            </button>
+            <div class="mode-toggle"><span>Dev Mode</span><input type="checkbox" id="dev-mode-toggle"></div>
+            <button id="export-btn" class="btn btn-sm btn-secondary"><span
+                    class="material-symbols-outlined">movie</span><span class="desktop-only">Export</span></button>
+            <button id="publish-btn" class="btn btn-primary btn-sm" hidden><span
+                    class="material-symbols-outlined">upload</span><span class="desktop-only">Publish</span></button>
         </div>
     </nav>
-
-    <!-- WORKSPACE -->
     <div class="workspace">
-
-        <!-- PANEL 1: SETTINGS -->
         <div class="panel left-panel" id="panel-settings">
             <div class="panel-header">
                 <h3>Settings</h3>
             </div>
+
+            <div class="project-meta-container">
+                <label for="project-name-input">Project Name</label>
+                <input type="text" id="project-name-input" placeholder="Enter a name for your project...">
+            </div>
+
+            <div class="magic-fill-container">
+                <button id="magic-fill-btn" class="magic-fill-btn">
+                    <span class="material-symbols-outlined">auto_awesome</span>
+                    <span>Generate with AI</span>
+                </button>
+                <div id="magic-prompt-box" class="magic-prompt-box hidden">
+                    <textarea id="ai-prompt-textarea"
+                        placeholder="e.g., 'five questions about ancient Rome'"></textarea>
+                    <div style="display: flex; justify-content: flex-end; align-items: center; gap: 10px;">
+                        <span id="ai-status-text" class="ai-status"></span>
+                        <button id="ai-cancel-btn" class="btn btn-sm btn-secondary">Cancel</button>
+                        <button id="ai-submit-btn" class="btn btn-sm btn-primary">Generate</button>
+                    </div>
+                </div>
+            </div>
             <div id="dynamic-form-container" class="scroll-content"></div>
         </div>
-
         <div class="resizer-vertical"></div>
-
-        <!-- PANEL 2: PREVIEW (Center) -->
         <div class="panel center-panel active" id="panel-preview">
-            <div class="phone-frame">
-                <iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
+            <div class="phone-frame"><iframe id="preview-frame" sandbox="allow-scripts allow-same-origin"></iframe>
             </div>
-
-            <!-- PLAYBACK CONTROLS -->
             <div class="playback-controls">
-                <button id="play-btn" class="circle-btn">
-                    <span class="material-symbols-outlined">play_arrow</span>
-                </button>
-                <div class="timeline-wrapper">
-                    <input type="range" id="timeline" min="0" max="300" value="0" step="1">
+                <button id="play-btn" class="circle-btn"><span
+                        class="material-symbols-outlined">play_arrow</span></button>
+                <div class="timeline-wrapper"><input type="range" id="timeline" min="0" max="300" value="0" step="1">
                 </div>
                 <span id="frame-display">0 / 300</span>
-                <button id="run-code-btn" class="icon-btn" title="Refresh">
-                    <span class="material-symbols-outlined">refresh</span>
-                </button>
+                <button id="run-code-btn" class="icon-btn" title="Refresh"><span
+                        class="material-symbols-outlined">refresh</span></button>
             </div>
         </div>
-
         <div class="resizer-vertical"></div>
-
-        <!-- PANEL 3: ASSETS -->
         <div class="panel right-panel" id="panel-assets">
             <div class="panel-header">
-                <h3>Assets</h3>
-                <button id="add-asset-btn" class="material-symbols-outlined">add</button>
+                <h3>Assets</h3><button id="add-asset-btn" class="material-symbols-outlined">add</button>
             </div>
             <div id="asset-list" class="scroll-content"></div>
-
             <div class="panel-header console-header">
-                <h3>Console</h3>
-                <button onclick="clearConsole()" class="material-symbols-outlined">delete</button>
+                <h3>Console</h3><button id="clear-console-btn" class="material-symbols-outlined">delete</button>
             </div>
             <div id="console-output" class="scroll-content console-content"></div>
         </div>
-
         <div class="resizer-vertical hidden" id="code-panel-resizer"></div>
-
-        <!-- PANEL 4: CODE -->
         <div class="panel code-panel" id="panel-code">
             <div class="panel-header">
                 <h3>P5.js Logic</h3>
-                <button onclick="generateCodeWithAI()" class="ai-trigger-btn" title="Generate Code with AI">
-                    <span class="material-symbols-outlined" style="font-size:16px;">auto_awesome</span>
-                </button>
             </div>
             <div id="editor-wrapper"></div>
         </div>
-
     </div>
-
-    <!-- MOBILE TABS -->
     <div class="mobile-tabs">
-        <button class="tab-btn" onclick="switchMobileTab('settings', this)">
-            <span class="material-symbols-outlined">tune</span>
-            <span>Edit</span>
-        </button>
-        <button class="tab-btn active" onclick="switchMobileTab('preview', this)">
-            <span class="material-symbols-outlined">play_circle</span>
-            <span>Preview</span>
-        </button>
-        <button class="tab-btn" onclick="switchMobileTab('assets', this)">
-            <span class="material-symbols-outlined">folder</span>
-            <span>Assets</span>
-        </button>
-        <button class="tab-btn" onclick="switchMobileTab('code', this)">
-            <span class="material-symbols-outlined">code</span>
-            <span>Code</span>
-        </button>
+        <button class="tab-btn" id="tab-btn-settings"><span
+                class="material-symbols-outlined">tune</span><span>Edit</span></button>
+        <button class="tab-btn active" id="tab-btn-preview"><span
+                class="material-symbols-outlined">play_circle</span><span>Preview</span></button>
+        <button class="tab-btn" id="tab-btn-assets"><span
+                class="material-symbols-outlined">folder</span><span>Assets</span></button>
+        <button class="tab-btn" id="tab-btn-code"><span
+                class="material-symbols-outlined">code</span><span>Code</span></button>
     </div>
-
-    <!-- UTILS -->
-    <input type="file" id="asset-file-input" hidden accept="image/*,video/*">
-
+    <input type="file" id="asset-file-input" hidden accept="image/*,video/*,audio/*">
     <div id="loading-overlay" class="hidden overlay">
         <div class="spinner"></div>
         <h3 id="loading-text">Loading...</h3>
-        <p id="loading-subtext" style="color:#aaa; font-size:12px; margin-top:5px;"></p>
+        <p id="loading-subtext"></p>
     </div>
 
-    <!-- CONFIG & LOGIC -->
-    <script src="js/config.js"></script>
-    <script src="js/editor.js"></script>
+    <!-- JAVASCRIPT MODULES -->
+    <script src="js/editor/state.js" type="module"></script>
+    <script src="js/editor/default-template.js" type="module"></script>
+    <script src="js/editor/system-injection.js" type="module"></script>
+    <script src="js/editor/ui-manager.js" type="module"></script>
+    <script src="js/editor/asset-manager.js" type="module"></script>
+    <script src="js/editor/api.js" type="module"></script>
+    <script src="js/editor/preview-manager.js" type="module"></script>
+    <script src="js/editor/main.js" type="module"></script>
 </body>
 
 </html>

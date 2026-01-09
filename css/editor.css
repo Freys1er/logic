@@ -459,10 +459,27 @@ input[type="color"] {
         border: none;
     }
 
+    /* In your main editor.css file */
     .phone-frame {
-        transform: scale(0.95);
-        border: 10px solid #222;
-        border-radius: 24px;
+        width: 95%;
+        max-width: 380px;
+        aspect-ratio: 9 / 16;
+        border: 0;
+        background: #000;
+        box-shadow: 0 0 50px rgba(0, 0, 0, 0.5);
+        padding: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        /* Hide anything that might spill out */
+    }
+
+    iframe {
+        width: 100%;
+        height: 100%;
+        border: none;
+        display: block;
     }
 
     .resizer-vertical {
@@ -472,4 +489,89 @@ input[type="color"] {
         display: block;
         flex-shrink: 0;
     }
+}
+
+/* Add to your editor.css file */
+
+.magic-fill-container {
+    padding: 15px;
+    border-bottom: 1px solid var(--border);
+}
+
+.magic-fill-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #a55eea 0%, #4b7bec 100%);
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(165, 94, 234, 0.3);
+    transition: transform 0.2s;
+}
+
+.magic-fill-btn:hover {
+    transform: translateY(-2px);
+}
+
+.magic-prompt-box {
+    margin-top: 15px;
+    background: #1a1a1a;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid #333;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.magic-prompt-box textarea {
+    width: 100%;
+    min-height: 80px;
+    resize: vertical;
+    background: #111;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 8px;
+    border-radius: 4px;
+}
+
+.ai-status {
+    font-size: 12px;
+    color: var(--text-muted);
+}
+
+.btn[hidden] {
+    display: none !important;
+}
+
+.project-meta-container {
+    padding: 15px;
+    background-color: #1a1a1a;
+    border-bottom: 1px solid var(--border);
+}
+
+.project-meta-container label {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-muted);
+    margin-bottom: 6px;
+    text-transform: uppercase;
+}
+
+#project-name-input {
+    width: 100%;
+    background: #101010;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 10px;
+    border-radius: 6px;
+    font-weight: 600;
+    font-size: 14px;
 }
