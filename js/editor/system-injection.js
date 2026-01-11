@@ -7,10 +7,21 @@ let _sysTotalFrames = 300;
 const _assetCache = {};
 const _assetWaitList = {};
 let _availableAssets = [];
-let _speechSynth;
-// --- ADDED FOR RECORDING ---
-// This flag tracks when we are in "play-to-record" mode.
 let _isRecording = false;
+let _voices = [];
+
+// --- VOICE INITIALIZATION ---
+function _loadVoices() {
+    if ('speechSynthesis' in window) {
+        _voices = window.speechSynthesis.getVoices();
+        if (_voices.length === 0) {
+            window.speechSynthesis.onvoiceschanged = () => {
+                _voices = window.speechSynthesis.getVoices();
+            };
+        }
+    }
+}
+_loadVoices();
 
 // --- OS API ---
 const os = {
@@ -23,50 +34,62 @@ const os = {
             const assetInfo = os.files.info(filename);
             if (!assetInfo) return null;
 
+            // --- FIXED: ADDED VIDEO HANDLING LOGIC ---
             if (assetInfo.type.startsWith('image/')) {
                 const placeholder = createImage(1, 1);
                 _assetCache[filename] = placeholder;
                 window.parent.postMessage({ type: 'REQUEST_ASSET_BY_NAME', payload: { name: filename } }, '*');
                 _assetWaitList[filename] = (img) => {
-                    placeholder.width = img.width;
-                    placeholder.height = img.height;
-                    placeholder.drawingContext = img.drawingContext;
-                    placeholder.canvas = img.canvas;
+                    placeholder.width = img.width; placeholder.height = img.height;
+                    placeholder.drawingContext = img.drawingContext; placeholder.canvas = img.canvas;
                     if(typeof redraw === 'function') redraw();
                 };
                 return placeholder;
-            }
-            if(!_assetWaitList[filename]) {
-                 _assetWaitList[filename] = true;
-                 window.parent.postMessage({ type: 'REQUEST_ASSET_BY_NAME', payload: { name: filename } }, '*');
+            } else if (assetInfo.type.startsWith('video/')) {
+                // Create an empty video element as a placeholder to prevent crashes
+                const placeholder = createVideo('');
+                _assetCache[filename] = placeholder;
+                // Request the actual video data from the parent
+                window.parent.postMessage({ type: 'REQUEST_ASSET_BY_NAME', payload: { name: filename } }, '*');
+                return placeholder;
+            } else if (assetInfo.type.startsWith('audio/')) {
+                 if(!_assetWaitList[filename]) {
+                     _assetWaitList[filename] = true;
+                     window.parent.postMessage({ type: 'REQUEST_ASSET_BY_NAME', payload: { name: filename } }, '*');
+                 }
             }
             return null;
         }
     },
     sound: {
         play: (filename) => {
-            const sound = _assetCache[filename];
-            if (sound && typeof sound.play === 'function' && sound.isLoaded()) {
-                if (!sound.isPlaying()) {
-                    sound.play();
-                    window.parent.postMessage({ type: 'LOG', payload: { src: 'p5.js', msg: \`Playing sound: \${filename}\`} }, '*');
-                }
-                return true; // Success
-            } else if (os.files.exists(filename)) {
-                os.files.get(filename); // Request if not cached
-            }
-            return false; // Failure (not loaded yet)
-        },
-        speak: (text, voice = 'Google US English', rate = 1.0, pitch = 1.0) => {
-            if (_speechSynth && _speechSynth.voices && _speechSynth.voices.length > 0) {
-                _speechSynth.setVoice(voice);
-                _speechSynth.setRate(rate);
-                _speechSynth.setPitch(pitch);
-                _speechSynth.speak(text);
-                window.parent.postMessage({ type: 'LOG', payload: { src: 'p5.js', msg: \`Speaking: "\${text.substring(0, 25)}..."\` } }, '*');
+            const soundAsset = _assetCache[filename];
+            if (soundAsset && soundAsset instanceof Audio) {
+                if (soundAsset.paused) { soundAsset.play().catch(e => {}); }
                 return true;
+            } else if (os.files.exists(filename) && !_assetWaitList[filename]) {
+                os.files.get(filename);
             }
             return false;
+        },
+        speak: (text, voiceName = 'default', rate = 1.0, pitch = 1.0) => {
+            if (!('speechSynthesis' in window)) { return false; }
+            if (window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+            }
+            const utterance = new SpeechSynthesisUtterance(text);
+            utterance.rate = Math.max(0.1, Math.min(rate, 2));
+            utterance.pitch = Math.max(0, Math.min(pitch, 2));
+            if (_voices.length > 0) {
+                let selectedVoice = _voices.find(v => v.name === voiceName);
+                if (selectedVoice) { utterance.voice = selectedVoice; }
+            }
+            window.speechSynthesis.speak(utterance);
+            return true;
+        },
+        listVoices: () => {
+            if (_voices.length === 0) _loadVoices();
+            return _voices.map(v => v.name);
         }
     },
     time: { progress: () => _sysTotalFrames > 0 ? currentFrame / _sysTotalFrames : 0, frame: () => currentFrame, duration: () => _sysTotalFrames },
@@ -87,11 +110,19 @@ window.addEventListener('message', function(event) {
                     _assetCache[name] = loadedImg;
                 });
             } else if (type.startsWith('audio/')) {
-                loadSound(dataUrl, (soundFile) => {
-                    _assetCache[name] = soundFile;
-                    delete _assetWaitList[name];
-                    window.parent.postMessage({ type: 'LOG', payload: { src: 'p5.js', msg: \`Sound '\${name}' loaded successfully.\` } }, '*');
-                }, (err) => window.parent.postMessage({ type: 'P5_ERROR', payload: \`Sound load error: \${name}\` }, '*'));
+                const audio = new Audio(dataUrl);
+                _assetCache[name] = audio;
+                delete _assetWaitList[name];
+                window.parent.postMessage({ type: 'LOG', payload: { src: 'System', msg: \`Sound '\${name}' loaded.\` } }, '*');
+            // --- FIXED: HANDLE VIDEO DATA WHEN IT ARRIVES ---
+            } else if (type.startsWith('video/')) {
+                const videoPlaceholder = _assetCache[name];
+                if (videoPlaceholder && videoPlaceholder.elt) {
+                    // Inject the source into the existing placeholder element and load it
+                    videoPlaceholder.elt.src = dataUrl;
+                    videoPlaceholder.load();
+                    window.parent.postMessage({ type: 'LOG', payload: { src: 'System', msg: \`Video '\${name}' is loading.\` } }, '*');
+                }
             }
             break;
         case 'UPDATE_STATE':
@@ -100,26 +131,22 @@ window.addEventListener('message', function(event) {
             break;
         case 'SEEK_FRAME':
             currentFrame = data.frame;
-            if (!data.isPlaying) { // Stop all sounds if seeking manually (not during playback)
+            if (!data.isPlaying) {
                 Object.values(_assetCache).forEach(asset => {
-                    if (asset instanceof p5.SoundFile && asset.isPlaying()) asset.stop();
+                    if (asset instanceof Audio && !asset.paused) { asset.pause(); asset.currentTime = 0; }
                 });
-                if(_speechSynth && _speechSynth.speaking) _speechSynth.cancel();
+                if(window.speechSynthesis && window.speechSynthesis.speaking) { window.speechSynthesis.cancel(); }
             }
             if(typeof redraw === 'function') redraw();
             window.parent.postMessage({ type: 'P5_FRAME_RENDERED' }, '*');
             break;
-        
-        // --- ADDED FOR RECORDING ---
-        // This message starts a full-speed playback for video capture.
         case 'PLAY_FOR_RECORDING':
-            currentFrame = 0;   // Reset to the beginning.
-            _isRecording = true; // Set the recording flag.
-            loop();             // Start the p5.js animation loop.
+            currentFrame = 0; _isRecording = true; loop();
             break;
-            
         case 'INITIALIZE_AUDIO':
-            if (getAudioContext().state !== 'running') getAudioContext().resume();
+             _loadVoices();
+             const context = new (window.AudioContext || window.webkitAudioContext)();
+             if (context.state === 'suspended') { context.resume(); }
             break;
     }
 });
@@ -127,44 +154,26 @@ window.addEventListener('message', function(event) {
 // --- P5.JS HOOKS ---
 const _userSetup = window.setup || function(){};
 const _userDraw = window.draw || null;
-
 window.setup = function() {
-    try { 
-        _speechSynth = new p5.Speech();
-        _userSetup(); 
-    } catch(e) { window.parent.postMessage({ type: 'P5_ERROR', payload: e.message }, '*'); }
-    // --- ADDED TO PREVENT AUTOPLAY ---
-    // Ensure the animation doesn't play on its own, so we can control it.
-    if (typeof render === 'function' || _userDraw) {
-        noLoop();
-    }
+    try { _userSetup(); } catch(e) { window.parent.postMessage({ type: 'P5_ERROR', payload: e.message }, '*'); }
+    if (typeof render === 'function' || _userDraw) { noLoop(); }
     window.parent.postMessage({ type: 'P5_READY' }, '*');
 };
-
 window.draw = function() {
-    Object.assign(window, state); // Make form variables global
+    Object.assign(window, state);
     let t = _sysTotalFrames > 0 ? currentFrame / _sysTotalFrames : 0;
     try {
-        if (typeof render === 'function') { push(); render(t, currentFrame); pop(); } 
+        if (typeof render === 'function') { push(); render(t, currentFrame); pop(); }
         else if (_userDraw) { _userDraw(); }
     } catch(e) {
         noLoop();
         window.parent.postMessage({ type: 'P5_ERROR', payload: "Runtime: " + e.message }, '*');
     }
-    
-    // --- ADDED FOR RECORDING ---
-    // If we are in recording mode, advance the frame and check if we're done.
     if (_isRecording) {
-        // If the current frame is the last one, stop recording.
         if (currentFrame >= _sysTotalFrames - 1) {
-            _isRecording = false;
-            noLoop(); // Stop the p5.js animation loop.
-            // Send the crucial "finished" message back to the main editor.
+            _isRecording = false; noLoop();
             window.parent.postMessage({ type: 'RECORDING_FINISHED' }, '*');
-        } else {
-            // Otherwise, just advance to the next frame.
-            currentFrame++;
-        }
+        } else { currentFrame++; }
     }
 };
 </script>
