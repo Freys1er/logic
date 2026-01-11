@@ -1,3 +1,5 @@
+// --- START OF FILE state.js ---
+
 // This module exports the shared state and DOM element references for all other modules to use.
 export const state = {
     editorCM: null,
@@ -12,6 +14,9 @@ export const state = {
     currentProjectName: null,
     currentCloudId: null,
     saveTimeout: null,
+    // --- NEW: FOR FASTER RENDERING ---
+    renderCache: [], // Holds pre-rendered ImageData objects
+    isRenderingCancelled: false, // Flag to stop the caching process
 };
 
 export const els = {
@@ -32,4 +37,4 @@ export const els = {
         code: document.getElementById('panel-code'),
     },
     modals: { loading: document.getElementById('loading-overlay') },
-};
+}

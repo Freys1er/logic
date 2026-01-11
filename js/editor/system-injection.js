@@ -8,6 +8,9 @@ const _assetCache = {};
 const _assetWaitList = {};
 let _availableAssets = [];
 let _speechSynth;
+// --- ADDED FOR RECORDING ---
+// This flag tracks when we are in "play-to-record" mode.
+let _isRecording = false;
 
 // --- OS API ---
 const os = {
@@ -106,6 +109,15 @@ window.addEventListener('message', function(event) {
             if(typeof redraw === 'function') redraw();
             window.parent.postMessage({ type: 'P5_FRAME_RENDERED' }, '*');
             break;
+        
+        // --- ADDED FOR RECORDING ---
+        // This message starts a full-speed playback for video capture.
+        case 'PLAY_FOR_RECORDING':
+            currentFrame = 0;   // Reset to the beginning.
+            _isRecording = true; // Set the recording flag.
+            loop();             // Start the p5.js animation loop.
+            break;
+            
         case 'INITIALIZE_AUDIO':
             if (getAudioContext().state !== 'running') getAudioContext().resume();
             break;
@@ -121,6 +133,11 @@ window.setup = function() {
         _speechSynth = new p5.Speech();
         _userSetup(); 
     } catch(e) { window.parent.postMessage({ type: 'P5_ERROR', payload: e.message }, '*'); }
+    // --- ADDED TO PREVENT AUTOPLAY ---
+    // Ensure the animation doesn't play on its own, so we can control it.
+    if (typeof render === 'function' || _userDraw) {
+        noLoop();
+    }
     window.parent.postMessage({ type: 'P5_READY' }, '*');
 };
 
@@ -133,6 +150,21 @@ window.draw = function() {
     } catch(e) {
         noLoop();
         window.parent.postMessage({ type: 'P5_ERROR', payload: "Runtime: " + e.message }, '*');
+    }
+    
+    // --- ADDED FOR RECORDING ---
+    // If we are in recording mode, advance the frame and check if we're done.
+    if (_isRecording) {
+        // If the current frame is the last one, stop recording.
+        if (currentFrame >= _sysTotalFrames - 1) {
+            _isRecording = false;
+            noLoop(); // Stop the p5.js animation loop.
+            // Send the crucial "finished" message back to the main editor.
+            window.parent.postMessage({ type: 'RECORDING_FINISHED' }, '*');
+        } else {
+            // Otherwise, just advance to the next frame.
+            currentFrame++;
+        }
     }
 };
 </script>

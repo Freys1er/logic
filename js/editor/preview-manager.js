@@ -6,7 +6,8 @@ export function initPreviewManager() {
     els.playBtn.addEventListener('click', togglePlay);
     els.timeline.addEventListener('input', (e) => seek(parseInt(e.target.value, 10)));
     document.getElementById('run-code-btn').addEventListener('click', updatePreview);
-    document.getElementById('export-btn').addEventListener('click', () => renderWebM(15, 30));
+    // MODIFIED: The function call no longer needs sampleFps, so we simplify it here.
+    document.getElementById('export-btn').addEventListener('click', () => renderWebM(30));
 
     window.addEventListener('message', (e) => {
         if (e.source !== els.frame.contentWindow) return;
@@ -82,8 +83,17 @@ function parseUserConfig(code) {
     return config;
 }
 
+
 export function updatePreview() {
     log("System", "Compiling and reloading preview...");
+    console.log("updatePreview: Reloading preview and clearing render cache.");
+
+    // --- MODIFIED: CACHE INVALIDATION ---
+    // Any time the code changes, the old render cache is invalid.
+    state.renderCache = [];
+    console.log("updatePreview: Render cache has been cleared.");
+    log("System", "Render cache has been cleared.", "info");
+
     let userCode = state.editorCM.getValue();
     let config = parseUserConfig(userCode);
     if (config.length > 0) buildForm(config);
@@ -93,25 +103,17 @@ export function updatePreview() {
         'let _availableAssets = [];', `let _availableAssets = ${JSON.stringify(assetMeta)};`
     );
 
-    // ========================================================================
-    // P5 Canvas injection logic
     const canvasRegex = /(createCanvas\s*\([^)]*\))/;
     if (canvasRegex.test(userCode)) {
         userCode = userCode.replace(canvasRegex, "$1.parent('sketch-holder');");
     } else {
-        // Fallback ONLY if the user completely deleted createCanvas.
-        userCode = "function setup() { createCanvas(1080, 1920).parent('sketch-holder'); }\\n" + userCode;
+        userCode = "function setup() { createCanvas(1080, 1920).parent('sketch-holder'); }\n" + userCode;
     }
-    // ========================================================================
 
     const html = `
     <html>
       <head>
-        <style>
-          body { margin: 0; overflow: hidden; }
-          #sketch-holder { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; }
-          canvas { max-width: 100%; max-height: 100%; object-fit: contain; }
-        </style>
+        <style> body { margin: 0; overflow: hidden; } #sketch-holder { width: 100%; height: 100%; display: flex; justify-content: center; align-items: center; } canvas { max-width: 100%; max-height: 100%; object-fit: contain; } </style>
       </head>
       <body>
         <div id="sketch-holder"></div>
@@ -128,6 +130,7 @@ export function updatePreview() {
     state.currentBlobUrl = URL.createObjectURL(blob);
     els.frame.src = state.currentBlobUrl;
 }
+
 
 
 /**
@@ -164,7 +167,7 @@ export function saveVariablesToCode() {
         } else {
             // === STRINGS (Text, Color, Textarea, etc.) ===
             // Clean and wrap in quotes
-            const sanitized = rawValue.replace(/"/g, ''); 
+            const sanitized = rawValue.replace(/"/g, '');
             const escaped = sanitized.replace(/\\/g, '\\\\').replace(/\n/g, '\\n');
             newValFormatted = `"${escaped}"`;
         }
@@ -172,7 +175,7 @@ export function saveVariablesToCode() {
         // 3. AGGRESSIVE REPLACE
         // Finds the variable assignment and consumes EVERYTHING until the next semicolon or newline.
         // This ensures we replace the whole old value (even if it was messy like ""#fff""#fff"")
-        const replaceRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)([^;\\n]+)`, 'g');
+        const replaceRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\s*)([^;\\n]+)`, 'g');
 
         if (replaceRegex.test(code)) {
             // Replace the old value ($2) with the new formatted value
@@ -224,35 +227,85 @@ function seek(frame, isPlaying = false) {
     }
 }
 
-async function renderWebM(sampleFps, playbackFps) {
-    if (state.isRecording) return;
+/**
+ * --- NEW: FAST REAL-TIME RENDERING ---
+ * Renders the animation to a WebM file using the high-performance MediaRecorder API.
+ * This is significantly faster than the old frame-by-frame caching method.
+ * @param {number} playbackFps - The desired frames per second for the output video.
+ */
+async function renderWebM(playbackFps) {
+    log("System", "Starting real-time render with MediaRecorder...");
+    if (state.isRecording) {
+        log("System", "A recording is already in progress.", "warn");
+        return;
+    }
     state.isRecording = true;
-    if (state.isPlaying) togglePlay();
-    const capturer = new CCapture({ format: 'webm', framerate: playbackFps, verbose: false });
-    const captureFrame = (frame) => new Promise((resolve) => {
-        const listener = (e) => {
-            if (e.source === els.frame.contentWindow && e.data.type === 'P5_FRAME_RENDERED') {
-                const canvas = els.frame.contentWindow.document.querySelector('canvas');
-                if (canvas) capturer.capture(canvas);
-                window.removeEventListener('message', listener);
+    if (state.isPlaying) togglePlay(); // Ensure animation is paused before starting
+
+    const duration = (state.totalFrames / 30) * 1000; // Calculate duration based on a 30fps timeline
+    showLoading("Recording in Progress...", `This will take about ${Math.round(duration / 1000)} seconds.`);
+    
+    let listener; // Declare listener here to be accessible in the finally block
+
+    try {
+        const sourceCanvas = els.frame.contentWindow.document.querySelector('canvas');
+        if (!sourceCanvas) throw new Error("Could not find the p5.js canvas to record.");
+
+        const stream = sourceCanvas.captureStream(playbackFps);
+        const recorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9',
+            // Set a bitrate for quality control. 2.5Mbps is good for 1080p.
+            bitsPerSecond: 2500000, 
+        });
+
+        const chunks = [];
+        recorder.ondataavailable = e => e.data.size > 0 && chunks.push(e.data);
+
+        // This promise resolves when the 'onstop' event fires, completing the file save.
+        const recordingPromise = new Promise(resolve => {
+            recorder.onstop = () => {
+                showLoading("Finalizing Video...", "Creating downloadable file.");
+                const blob = new Blob(chunks, { type: 'video/webm' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = 'render.webm';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                log("System", "WebM file has been saved.", "info");
                 resolve();
+            };
+        });
+        
+        // This listener waits for the p5.js sketch to tell us it has finished its animation loop.
+        listener = (e) => {
+            if (e.source === els.frame.contentWindow && e.data.type === 'RECORDING_FINISHED') {
+                if (recorder.state === 'recording') {
+                    recorder.stop();
+                }
             }
         };
         window.addEventListener('message', listener);
-        seek(frame);
-    });
-    capturer.start();
-    const step = 30 / sampleFps;
-    const totalFramesToCapture = Math.floor(state.totalFrames / step);
-    for (let i = 0; i < totalFramesToCapture; i++) {
-        const frameToRender = Math.floor(i * step);
-        showLoading("Rendering Video...", `${i + 1} / ${totalFramesToCapture}`);
-        await captureFrame(frameToRender);
+
+        recorder.start();
+        // Tell the iframe to play through the animation from the start, specifically for recording.
+        els.frame.contentWindow.postMessage({ type: 'PLAY_FOR_RECORDING' }, '*');
+        
+        await recordingPromise; // Wait for the onstop promise to resolve
+
+    } catch (error) {
+        console.error("renderWebM error:", error);
+        log("Render Error", error.message, "error");
+        alert("A critical error occurred during rendering: " + error.message);
+    } finally {
+        state.isRecording = false;
+        hideLoading();
+        seek(0);
+        // Important: Clean up the event listener to prevent memory leaks.
+        if (listener) {
+            window.removeEventListener('message', listener);
+        }
     }
-    showLoading("Finalizing Video...", "This may take a moment.");
-    capturer.stop();
-    capturer.save();
-    state.isRecording = false;
-    hideLoading();
-    seek(0);
 }
