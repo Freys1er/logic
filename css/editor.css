@@ -25,7 +25,7 @@ body {
     background: var(--bg-dark);
     color: var(--text-main);
     font-family: 'Inter', sans-serif;
-    height: 100vh;
+    height: 100dvh;
     display: flex;
     flex-direction: column;
     overflow: hidden;
@@ -574,4 +574,21 @@ input[type="color"] {
     border-radius: 6px;
     font-weight: 600;
     font-size: 14px;
+}
+
+
+.save-btn-container {
+    padding: 15px;
+    border-top: 1px solid var(--border);
+    background: #1a1a1a;
+    /* This ensures it's always at the bottom of the panel */
+    margin-top: auto;
+}
+
+#save-variables-btn {
+    width: 100%;
+    justify-content: center; /* Center the icon and text */
+    font-size: 14px;
+    font-weight: 600;
+    padding: 12px 0;
 }

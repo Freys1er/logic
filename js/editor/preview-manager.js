@@ -35,6 +35,11 @@ export function initPreviewManager() {
     });
 }
 
+/**
+ * Parses user code for variable definitions and configuration comments.
+ * @param {string} code The user's code string.
+ * @returns {Array} An array of variable configuration objects.
+ */
 function parseUserConfig(code) {
     const config = [];
     const lines = code.split('\n');
@@ -48,14 +53,27 @@ function parseUserConfig(code) {
             pendingData.label = labelMatch[1].trim();
             pendingData.type = labelMatch[2].trim();
         }
+        // This regex finds let/var assignments with values that are either quoted or unquoted
         const varMatch = cleanLine.match(/(?:let|var)\s+(\w+)\s*=\s*(["'].*?["]|[^;/\n]+)/);
         if (varMatch && pendingData.label) {
             const varName = varMatch[1];
             const rawVal = varMatch[2].trim();
             let finalVal = rawVal;
+
+            // Check if the value is a quoted string
             if ((rawVal.startsWith('"') && rawVal.endsWith('"')) || (rawVal.startsWith("'") && rawVal.endsWith("'"))) {
-                try { finalVal = new Function('return ' + rawVal)(); } catch (e) { finalVal = rawVal.slice(1, -1); }
+                try {
+                    // FIX: Use JSON.parse to safely and correctly un-escape the string literal
+                    finalVal = JSON.parse(rawVal);
+                } catch (e) {
+                    // Fallback: strip quotes if parsing fails
+                    finalVal = rawVal.slice(1, -1);
+                }
+            } else if (pendingData.type === 'number') {
+                // For unquoted numbers, convert to a number type for the form default value
+                finalVal = parseFloat(rawVal);
             }
+
             config.push({ id: varName, label: pendingData.label, type: pendingData.type, description: pendingData.description || "", defaultValue: finalVal });
             pendingData = {};
         }
@@ -76,14 +94,12 @@ export function updatePreview() {
     );
 
     // ========================================================================
-    // THIS IS THE NEW, SIMPLE, AND CORRECT LOGIC.
-    // We find the user's 'createCanvas' call and simply append our .parent() command to it.
-    // No more deleting or complex injection.
+    // P5 Canvas injection logic
     const canvasRegex = /(createCanvas\s*\([^)]*\))/;
     if (canvasRegex.test(userCode)) {
         userCode = userCode.replace(canvasRegex, "$1.parent('sketch-holder');");
     } else {
-        // Fallback ONLY if the user completely deleted createCanvas, which is unlikely.
+        // Fallback ONLY if the user completely deleted createCanvas.
         userCode = "function setup() { createCanvas(1080, 1920).parent('sketch-holder'); }\\n" + userCode;
     }
     // ========================================================================
@@ -113,44 +129,71 @@ export function updatePreview() {
     els.frame.src = state.currentBlobUrl;
 }
 
+
+/**
+ * Reads variable values from the dynamic form and writes them back into the code editor.
+ */
 export function saveVariablesToCode() {
     const values = {};
     let code = state.editorCM.getValue();
     let hasChanged = false;
+
     els.form.querySelectorAll('input, textarea').forEach(inp => {
         const id = inp.dataset.id;
         if (!id) return;
+
         values[id] = inp.value;
-        const typeCheckRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)(["']?)`);
-        const typeMatch = code.match(typeCheckRegex);
-        if (typeMatch) {
-            const quote = typeMatch[2];
-            let newValFormatted;
-            let replaceRegex;
-            if (quote === "'" || quote === '"') {
-                const escapedVal = inp.value.replace(/\\/g, '\\\\').replace(new RegExp(quote, 'g'), `\\${quote}`).replace(/\n/g, '\\n');
-                newValFormatted = `${quote}${escapedVal}${quote}`;
-                replaceRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)${quote}(.*?)${quote}`);
-            } else {
-                newValFormatted = inp.value;
-                replaceRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)([^;\\/\\n]+)`);
-            }
-            if (code.match(replaceRegex)) {
-                code = code.replace(replaceRegex, `$1${newValFormatted}`);
-                hasChanged = true;
-            }
+
+        // 1. Check if the variable exists in the code
+        const assignmentPrefixRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)`);
+        if (!code.match(assignmentPrefixRegex)) return;
+
+        let newValFormatted;
+        const rawValue = inp.value;
+
+        // 2. Format the value based on the Input Type
+        if (inp.type === 'number' || inp.type === 'range') {
+            // === NUMBERS ===
+            // Don't add quotes! 
+            // If empty, default to 0 to prevent syntax errors (like "let x = ;")
+            newValFormatted = rawValue.trim() === '' ? '0' : rawValue;
+        } else if (inp.type === 'checkbox') {
+            // === BOOLEANS ===
+            // Use the checked state (true/false) without quotes
+            newValFormatted = inp.checked.toString();
+        } else {
+            // === STRINGS (Text, Color, Textarea, etc.) ===
+            // Clean and wrap in quotes
+            const sanitized = rawValue.replace(/"/g, ''); 
+            const escaped = sanitized.replace(/\\/g, '\\\\').replace(/\n/g, '\\n');
+            newValFormatted = `"${escaped}"`;
+        }
+
+        // 3. AGGRESSIVE REPLACE
+        // Finds the variable assignment and consumes EVERYTHING until the next semicolon or newline.
+        // This ensures we replace the whole old value (even if it was messy like ""#fff""#fff"")
+        const replaceRegex = new RegExp(`((?:let|var)\\s+${id}\\s*=\\s*)([^;\\n]+)`, 'g');
+
+        if (replaceRegex.test(code)) {
+            // Replace the old value ($2) with the new formatted value
+            code = code.replace(replaceRegex, `$1${newValFormatted}`);
+            hasChanged = true;
         }
     });
+
     if (hasChanged) {
         const cursor = state.editorCM.getCursor();
         state.editorCM.setValue(code);
         state.editorCM.setCursor(cursor);
         state.editorCM.getInputField().blur();
+        updatePreview();
     }
+
     if (els.frame.contentWindow) {
         els.frame.contentWindow.postMessage({ type: 'UPDATE_STATE', payload: values }, '*');
     }
 }
+
 
 function togglePlay() {
     state.isPlaying = !state.isPlaying;

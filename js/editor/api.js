@@ -25,6 +25,7 @@ export async function loadFromServer(id) {
         if (!res.ok) throw new Error(`Server responded with status ${res.status}`);
         
         const data = await res.json();
+        console.log(data);
         
         if (data.success) {
             // This function now correctly returns ALL the data to the caller.

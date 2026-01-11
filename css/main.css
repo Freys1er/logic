@@ -2,12 +2,16 @@
    GLOBAL VARIABLES & RESET
    ========================================== */
 :root {
-    --bg-color: #f5f5f7;        /* Apple Grey */
-    --surface: rgba(255, 255, 255, 0.65); /* Glass */
+    --bg-color: #f5f5f7;
+    /* Apple Grey */
+    --surface: rgba(255, 255, 255, 0.65);
+    /* Glass */
     --surface-solid: #ffffff;
-    --text-primary: #1d1d1f;    /* Deep Charcoal */
+    --text-primary: #1d1d1f;
+    /* Deep Charcoal */
     --text-secondary: #86868b;
-    --accent: #0071e3;          /* System Blue */
+    --accent: #0071e3;
+    /* System Blue */
     --border: rgba(0, 0, 0, 0.1);
     --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.08);
     --radius: 18px;
@@ -17,7 +21,8 @@
 * {
     box-sizing: border-box;
     outline: none;
-    -webkit-tap-highlight-color: transparent; /* Remove mobile tap gray box */
+    -webkit-tap-highlight-color: transparent;
+    /* Remove mobile tap gray box */
 }
 
 body {
@@ -38,7 +43,8 @@ body {
     width: 100%;
     min-height: 100vh;
     padding: 40px 24px;
-    background: var(--bg-color); /* Solid background on mobile */
+    background: var(--bg-color);
+    /* Solid background on mobile */
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -78,11 +84,13 @@ label {
 
 input {
     width: 100%;
-    padding: 16px; /* Larger touch target */
+    padding: 16px;
+    /* Larger touch target */
     background: #ffffff;
     border: 1px solid var(--border);
     border-radius: 12px;
-    font-size: 16px; /* Prevents iOS zoom on focus */
+    font-size: 16px;
+    /* Prevents iOS zoom on focus */
     color: var(--text-primary);
 }
 
@@ -92,7 +100,8 @@ input:focus {
 
 /* BUTTONS */
 button.primary-btn {
-    width: 100%; /* Full width on mobile */
+    width: 100%;
+    /* Full width on mobile */
     padding: 16px;
     background: var(--text-primary);
     color: #fff;
@@ -114,7 +123,8 @@ button.primary-btn:active {
     font-size: 14px;
     color: var(--text-secondary);
     text-align: center;
-    padding: 10px; /* Touch area */
+    padding: 10px;
+    /* Touch area */
     cursor: pointer;
 }
 
@@ -132,9 +142,18 @@ button.primary-btn:active {
     opacity: 0;
     transition: opacity 0.3s;
 }
-.status-msg.visible { opacity: 1; }
-.status-msg.error { color: #ff3b30; }
-.status-msg.success { color: #34c759; }
+
+.status-msg.visible {
+    opacity: 1;
+}
+
+.status-msg.error {
+    color: #ff3b30;
+}
+
+.status-msg.success {
+    color: #34c759;
+}
 
 /* ==========================================
    DESKTOP OVERRIDES
@@ -149,19 +168,24 @@ button.primary-btn:active {
             radial-gradient(circle at 90% 80%, rgba(255, 0, 0, 0.03) 0%, transparent 20%);
     }
 
+    /* ==========================================
+   AUTH PAGE (MOBILE DEFAULT)
+   ========================================== */
+    /* On mobile, the container takes full width/height or sits at top */
     .auth-container {
-        width: 420px;
-        min-height: auto;
-        background: var(--surface); /* Glass effect */
-        backdrop-filter: blur(var(--blur));
-        -webkit-backdrop-filter: blur(var(--blur));
-        border: 1px solid rgba(255,255,255,0.4);
-        border-radius: var(--radius);
-        box-shadow: var(--shadow-lg);
-        padding: 40px;
+        width: 100%;
+        min-height: 100dvh;
+        /* Use dvh instead of vh */
+        padding: 40px 24px;
+        background: var(--bg-color);
+        /* Solid background on mobile */
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
     }
 
+
     button.primary-btn {
-        width: 100%; 
+        width: 100%;
     }
 }

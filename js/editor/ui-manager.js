@@ -26,6 +26,11 @@ export function initUIManager() {
     
     document.getElementById('clear-console-btn').addEventListener('click', () => { els.console.innerHTML = ''; });
 
+     document.getElementById('save-variables-btn').addEventListener('click', () => {
+        // When the button is clicked, we manually call the function to save to the code.
+        saveVariablesToCode();
+    });
+
     initAIMagicFill();
 }
 
@@ -58,10 +63,6 @@ export function buildForm(config) {
         input.value = field.defaultValue;
         input.dataset.id = field.id;
         
-        input.addEventListener('input', () => {
-            clearTimeout(state.saveTimeout);
-            state.saveTimeout = setTimeout(saveVariablesToCode, 400);
-        });
 
         group.appendChild(input);
         els.form.appendChild(group);
